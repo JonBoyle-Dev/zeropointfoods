@@ -1,0 +1,8 @@
+-- zeropointfoods — seed data
+-- Run after policies.sql
+--
+-- Placeholder for now. Real content seeding (starter food database, Zero-Point
+-- Meals/Mixers/Flavor Boosters) is handover-doc.md §6 — a deliberate later
+-- task, not part of the Phase 1 scaffold. Generate that content in one batch
+-- once Phase 4 (Zero-Point Library) is underway, rather than hand-typing it
+-- ad hoc while building earlier features.

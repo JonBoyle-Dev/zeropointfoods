@@ -1,0 +1,65 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { supabase } from '../lib/supabase'
+import { recalculateDailySummary } from './useDailySummary'
+import type { FoodEntry, MealType } from '../types/database'
+
+export type FoodEntryWithFoodName = FoodEntry & { foods: { name: string } | null }
+
+export function useTodayEntries(userId: string | undefined, date: string) {
+  return useQuery({
+    queryKey: ['foodEntries', userId, date],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('food_entries')
+        .select('*, foods(name)')
+        .eq('user_id', userId!)
+        .eq('logged_date', date)
+        .order('id')
+      if (error) throw error
+      return data as unknown as FoodEntryWithFoodName[]
+    },
+    enabled: !!userId,
+  })
+}
+
+export interface LogFoodEntryInput {
+  userId: string
+  foodId: string
+  loggedDate: string
+  mealType: MealType
+  quantity: number
+  pointsPerServing: number
+  dailyPointsAllowance: number
+}
+
+export function useLogFoodEntry() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (input: LogFoodEntryInput) => {
+      // Snapshotted at log time — editing the food later must not rewrite this entry (spec §5).
+      const pointsUsed = Math.round(input.pointsPerServing * input.quantity)
+
+      const { data, error } = await supabase
+        .from('food_entries')
+        .insert({
+          user_id: input.userId,
+          food_id: input.foodId,
+          logged_date: input.loggedDate,
+          meal_type: input.mealType,
+          quantity: input.quantity,
+          points_used: pointsUsed,
+        })
+        .select()
+        .single()
+      if (error) throw error
+
+      await recalculateDailySummary(input.userId, input.loggedDate, input.dailyPointsAllowance)
+
+      return data as FoodEntry
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['foodEntries', variables.userId, variables.loggedDate] })
+      queryClient.invalidateQueries({ queryKey: ['dailySummary', variables.userId, variables.loggedDate] })
+    },
+  })
+}
