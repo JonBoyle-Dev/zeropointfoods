@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Modal } from '../common/Modal'
 import { useLogFoodEntry } from '../../hooks/useFoodEntries'
+import { useMixers, useFlavorBoosters } from '../../hooks/useFoods'
 import type { Food, MealType, User } from '../../types/database'
 
 const MEAL_TYPES: { value: MealType; label: string }[] = [
@@ -24,6 +25,10 @@ export function LogFoodModal({
   const [quantity, setQuantity] = useState('1')
   const [mealType, setMealType] = useState<MealType>('snack')
   const logEntry = useLogFoodEntry()
+  // Mixers suggested when logging alcohol; flavor boosters suggested when logging a zero-point food (spec §3).
+  const { data: mixers } = useMixers()
+  const { data: boosters } = useFlavorBoosters()
+  const suggestions = food.category === 'alcohol' ? mixers : food.is_zero_point ? boosters : undefined
 
   function handleSubmit() {
     logEntry.mutate(
@@ -76,6 +81,13 @@ export function LogFoodModal({
         <p className="text-sm text-slate-500">
           {Math.round(food.points_per_serving * Number(quantity || 0))} points for {quantity || 0}× {food.serving_size} {food.serving_unit}
         </p>
+
+        {suggestions && suggestions.length > 0 && (
+          <div className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">
+            {food.category === 'alcohol' ? 'Zero-point mixers: ' : 'Zero-point flavor boosters: '}
+            {suggestions.map((s) => s.name).join(', ')}
+          </div>
+        )}
 
         <div className="flex justify-end">
           <button

@@ -43,6 +43,9 @@ export interface NewFoodInput {
   proteinG: number
   servingSize: number
   servingUnit: string
+  isZeroPoint?: boolean
+  isMixer?: boolean
+  isFlavorBooster?: boolean
 }
 
 export function useCreateFood() {
@@ -54,7 +57,7 @@ export function useCreateFood() {
         satFatG: input.satFatG,
         sugarG: input.sugarG,
         proteinG: input.proteinG,
-        isZeroPoint: false,
+        isZeroPoint: input.isZeroPoint ?? false,
         category: input.category,
       })
 
@@ -70,6 +73,9 @@ export function useCreateFood() {
           serving_size: input.servingSize,
           serving_unit: input.servingUnit,
           points_per_serving: pointsPerServing,
+          is_zero_point: input.isZeroPoint ?? false,
+          is_mixer: input.isMixer ?? false,
+          is_flavor_booster: input.isFlavorBooster ?? false,
           is_user_created: true,
         })
         .select()
@@ -78,5 +84,27 @@ export function useCreateFood() {
       return data as Food
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['foods'] }),
+  })
+}
+
+export function useMixers() {
+  return useQuery({
+    queryKey: ['foods', 'mixers'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('foods').select('*').eq('is_mixer', true).order('name')
+      if (error) throw error
+      return data as Food[]
+    },
+  })
+}
+
+export function useFlavorBoosters() {
+  return useQuery({
+    queryKey: ['foods', 'flavorBoosters'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('foods').select('*').eq('is_flavor_booster', true).order('name')
+      if (error) throw error
+      return data as Food[]
+    },
   })
 }

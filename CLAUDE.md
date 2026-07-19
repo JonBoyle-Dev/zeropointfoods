@@ -1,6 +1,6 @@
 # zeropointfoods — Personal Points Tracker
 
-React + Vite + Tailwind + Supabase personal food/activity points tracker (WW-points-inspired, independently formulated — see `points-tracker-spec (1).md` §1 for the IP note). Single user, no login. **Current scope: Phase 1–3 of the 5-phase build order in `handover-doc.md` §5** — onboarding, food logging (search/favourites/recently logged/serving multiplier), recipe builder, weekly bank rollover, activity logging (FitPoints), and weigh-ins with allowance recalculation. The Zero-Point Library and reporting/export are later phases, not yet built.
+React + Vite + Tailwind + Supabase personal food/activity points tracker (WW-points-inspired, independently formulated — see `points-tracker-spec (1).md` §1 for the IP note). Single user, no login. **Current scope: Phase 1–4 of the 5-phase build order in `handover-doc.md` §5** — onboarding, food logging (search/favourites/recently logged/serving multiplier), recipe builder, weekly bank rollover, activity logging (FitPoints), weigh-ins with allowance recalculation, and the Zero-Point Library (Meals/Mixers/Flavor Boosters) with a curated starter content seed. Reporting/export (Phase 5) isn't built yet.
 
 ## Source-of-truth docs
 
@@ -16,8 +16,11 @@ zeropointfoods/
 ├── supabase/
 │   ├── schema.sql     # 12 tables, enums, indexes — run first
 │   ├── policies.sql   # RLS (enabled, permissive — no auth exists) — run second
-│   ├── seed.sql       # placeholder — real content seeding is a later task (handover-doc §6)
+│   ├── seed.sql       # placeholder only — real content lives in migrations/0003
 │   └── migrations/    # incremental changes for already-provisioned projects, run in filename order
+│       ├── 0001_add_favourites.sql
+│       ├── 0002_seed_activities.sql
+│       └── 0003_seed_content.sql   # ~76 curated foods + 16 Zero-Point Meals + mixers/boosters (handover-doc §6)
 └── src/
     ├── lib/
     │   ├── supabase.ts   # client singleton, no generic Database type (hand-typed per hook instead)
@@ -25,8 +28,8 @@ zeropointfoods/
     │   └── points.ts     # the 4 formulas from spec §2 — single source of truth, don't reimplement inline
     ├── types/database.ts # hand-written row types for all 12 tables, no generated schema
     ├── hooks/             # one file per table, react-query wrapped
-    ├── components/{onboarding,foods,log,today,recipes,common}/
-    └── pages/             # route-level screens (Onboarding, Today, Log, Foods, Recipes)
+    ├── components/{onboarding,foods,log,today,recipes,library,common}/
+    └── pages/             # route-level screens (Onboarding, Today, Log, Foods, Recipes, Library)
 ```
 
 Note on schema drift: `schema.sql` reflects the original 12-table baseline; the favourites column and activities seed data only exist via `supabase/migrations/`. A fresh install must run `schema.sql` → `policies.sql` → every file in `migrations/` in order — don't assume `schema.sql` alone is current.
@@ -51,7 +54,9 @@ If the spec's formulas change, update `points.ts` and nowhere else.
 - **Activity points effectively expand the day's allowance** for banking purposes too — `recalculateWeeklyCycle` feeds `points_allowance + activity_points_earned` into `calculateDailyRollover`, matching the Today dial's `allowance + activity − used` display.
 - **`daily_summary.rollover_to_weekly` is that day's own delta contribution to the bank** (can be negative on an over-budget day), not the running bank total — the running total lives on `weekly_cycles.weekly_bank_current`.
 - **Weigh-ins recalculate the allowance immediately** (`useLogWeighIn` in `src/hooks/useWeighIns.ts`): update `users.current_weight_kg` + `daily_points_allowance` via `calculateAllowance`, then cascade into today's `daily_summary` and the current week's bank — same pattern as any other log action.
-- **Mixers and flavor boosters are flags on `foods`** (`is_mixer`, `is_flavor_booster`), not separate tables — logging them goes through the same food-entry flow as everything else.
+- **Mixers and flavor boosters are flags on `foods`** (`is_mixer`, `is_flavor_booster`), not separate tables — logging them goes through the same food-entry flow as everything else (`LogFoodModal` surfaces suggested mixers when the food being logged is alcohol, and suggested boosters when it's zero-point).
+- **`zero_point_meal_ingredients` must reference zero-point foods**, per spec §4 — there's no DB constraint for that (would need a cross-table trigger), so it's enforced app-side: `ZeroPointMealBuilder` only offers `is_zero_point` foods as ingredient choices.
+- **Logging a Zero-Point Meal is one-tap** (`useLogZeroPointMeal` in `src/hooks/useZeroPointMeals.ts`) — same reuse-the-food-entry-path approach as recipes, inserting one row per ingredient rather than adding a `meal_id` to `food_entries`.
 - **Dates must be formatted from local `Date` parts, never `.toISOString().slice(0,10)`.** UTC conversion silently shifts the date backward a day in positive-UTC-offset timezones once round-tripped through a local `Date` construction. Use `toDateInputValue`/`todayDateInputValue` from `src/lib/dates.ts`.
 - **Favourites are a flag on `foods`** (`is_favourite`, added in `supabase/migrations/0001_add_favourites.sql`) — the spec's data model has no dedicated favourites table, so this is the simplest fit rather than introducing one.
 - **Logging a recipe inserts one food_entries row per ingredient** (scaled by the ingredient's quantity and the servings multiplier), not a single recipe-level entry — `food_entries` has no `recipe_id` column, so this reuses the existing per-food logging/snapshot path (`useLogRecipe` in `src/hooks/useRecipes.ts`) instead of widening that table for one feature. `recipes.total_points` stays a cached display value on the recipe itself.

@@ -22,8 +22,13 @@ export function AddFoodForm({ onSubmit, isSubmitting }: { onSubmit: (input: NewF
   const [proteinG, setProteinG] = useState('')
   const [servingSize, setServingSize] = useState('1')
   const [servingUnit, setServingUnit] = useState('serving')
+  const [isZeroPoint, setIsZeroPoint] = useState(false)
+  const [isMixer, setIsMixer] = useState(false)
+  const [isFlavorBooster, setIsFlavorBooster] = useState(false)
 
   const isValid = name.trim() && calories && servingSize && servingUnit.trim()
+  // Alcohol is never zero-point regardless of the checkbox (spec §2.2, backstopped by a DB check constraint).
+  const zeroPointDisabled = category === 'alcohol'
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -37,12 +42,18 @@ export function AddFoodForm({ onSubmit, isSubmitting }: { onSubmit: (input: NewF
       proteinG: Number(proteinG || 0),
       servingSize: Number(servingSize),
       servingUnit: servingUnit.trim(),
+      isZeroPoint: zeroPointDisabled ? false : isZeroPoint,
+      isMixer,
+      isFlavorBooster,
     })
     setName('')
     setCalories('')
     setSatFatG('')
     setSugarG('')
     setProteinG('')
+    setIsZeroPoint(false)
+    setIsMixer(false)
+    setIsFlavorBooster(false)
   }
 
   return (
@@ -141,6 +152,26 @@ export function AddFoodForm({ onSubmit, isSubmitting }: { onSubmit: (input: NewF
             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
           />
         </div>
+      </div>
+
+      <div className="flex flex-wrap gap-4 text-sm text-slate-700">
+        <label className="flex items-center gap-1.5">
+          <input
+            type="checkbox"
+            checked={isZeroPoint}
+            disabled={zeroPointDisabled}
+            onChange={(e) => setIsZeroPoint(e.target.checked)}
+          />
+          Zero-point{zeroPointDisabled ? ' (not for alcohol)' : ''}
+        </label>
+        <label className="flex items-center gap-1.5">
+          <input type="checkbox" checked={isMixer} onChange={(e) => setIsMixer(e.target.checked)} />
+          Mixer
+        </label>
+        <label className="flex items-center gap-1.5">
+          <input type="checkbox" checked={isFlavorBooster} onChange={(e) => setIsFlavorBooster(e.target.checked)} />
+          Flavor booster
+        </label>
       </div>
 
       <div className="flex justify-end pt-2">

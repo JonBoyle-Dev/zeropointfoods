@@ -4,6 +4,7 @@ import { TodayPage } from './pages/TodayPage'
 import { FoodsPage } from './pages/FoodsPage'
 import { LogPage } from './pages/LogPage'
 import { RecipesPage } from './pages/RecipesPage'
+import { LibraryPage } from './pages/LibraryPage'
 import { useUser } from './hooks/useUser'
 
 function HomeRoute() {
@@ -21,6 +22,7 @@ function App() {
       <Route path="/log" element={<LogPage />} />
       <Route path="/foods" element={<FoodsPage />} />
       <Route path="/recipes" element={<RecipesPage />} />
+      <Route path="/library" element={<LibraryPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

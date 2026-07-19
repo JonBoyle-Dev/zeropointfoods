@@ -32,6 +32,9 @@ export function LogPage() {
       <div className="mb-4 flex items-center justify-between">
         <h1 className="font-['Space_Grotesk',sans-serif] text-[15px] font-semibold text-[#1C2620]">Log food or drink</h1>
         <div className="flex gap-3">
+          <Link to="/library" className="text-[12px] font-medium text-[#2B6E63]">
+            Library
+          </Link>
           <Link to="/recipes" className="text-[12px] font-medium text-[#2B6E63]">
             Recipes
           </Link>
