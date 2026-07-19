@@ -28,21 +28,8 @@ export function LogPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#EFF2ED] px-5 py-6">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="font-['Space_Grotesk',sans-serif] text-[15px] font-semibold text-[#1C2620]">Log food or drink</h1>
-        <div className="flex gap-3">
-          <Link to="/library" className="text-[12px] font-medium text-[#2B6E63]">
-            Library
-          </Link>
-          <Link to="/recipes" className="text-[12px] font-medium text-[#2B6E63]">
-            Recipes
-          </Link>
-          <Link to="/today" className="text-[12px] font-medium text-[#2B6E63]">
-            Today
-          </Link>
-        </div>
-      </div>
+    <div className="min-h-screen bg-[#EFF2ED] px-5 py-6 pb-24">
+      <h1 className="mb-4 font-['Space_Grotesk',sans-serif] text-[15px] font-semibold text-[#1C2620]">Log food or drink</h1>
 
       <div className="mb-3.5 flex items-center gap-2 rounded-xl border border-[#DADFD7] bg-white px-3.5 py-3 text-[13.5px] text-[#5B665D]">
         <span>🔍</span>

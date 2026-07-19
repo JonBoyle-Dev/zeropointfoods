@@ -16,7 +16,7 @@ export function FoodsPage() {
   const [editingFood, setEditingFood] = useState<Food | null>(null)
 
   return (
-    <div className="mx-auto max-w-md px-4 py-8">
+    <div className="mx-auto max-w-md px-4 py-8 pb-24">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold text-slate-900">Foods</h1>
         <Link to="/log" className="text-xs font-medium text-slate-500">

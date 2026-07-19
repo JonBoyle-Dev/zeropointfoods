@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { ZeroPointMealCard } from '../components/library/ZeroPointMealCard'
 import { ZeroPointMealBuilder } from '../components/library/ZeroPointMealBuilder'
 import { FoodRow } from '../components/log/FoodRow'
@@ -48,13 +47,8 @@ export function LibraryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#EFF2ED] px-5 py-6">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="font-['Space_Grotesk',sans-serif] text-[15px] font-semibold text-[#1C2620]">Zero-Point Library</h1>
-        <Link to="/log" className="text-[12px] font-medium text-[#2B6E63]">
-          Log food
-        </Link>
-      </div>
+    <div className="min-h-screen bg-[#EFF2ED] px-5 py-6 pb-24">
+      <h1 className="mb-4 font-['Space_Grotesk',sans-serif] text-[15px] font-semibold text-[#1C2620]">Zero-Point Library</h1>
 
       <div className="mb-4 flex gap-1.5 rounded-full bg-white p-1">
         {(['meals', 'mixers', 'boosters'] as LibraryTab[]).map((t) => (
