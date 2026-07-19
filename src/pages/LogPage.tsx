@@ -6,11 +6,13 @@ import { LogFoodModal } from '../components/log/LogFoodModal'
 import { useFoods, useToggleFavourite } from '../hooks/useFoods'
 import { useRecentlyLoggedFoods } from '../hooks/useFoodEntries'
 import { useUser } from '../hooks/useUser'
+import { useProfileContext } from '../context/ProfileContext'
 import { todayDateInputValue } from '../lib/dates'
 import type { Food, FoodCategory } from '../types/database'
 
 export function LogPage() {
-  const { data: user } = useUser()
+  const { currentProfileId } = useProfileContext()
+  const { data: user } = useUser(currentProfileId)
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState<FoodCategory | 'all'>('all')
   const [loggingFood, setLoggingFood] = useState<Food | null>(null)

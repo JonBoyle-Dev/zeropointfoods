@@ -5,14 +5,16 @@ import { WeeklyBankStrip } from '../components/today/WeeklyBankStrip'
 import { LogActivityModal } from '../components/today/LogActivityModal'
 import { WeighInModal } from '../components/today/WeighInModal'
 import { useDailySummary } from '../hooks/useDailySummary'
-import { useTodayEntries } from '../hooks/useFoodEntries'
-import { useTodayActivityEntries } from '../hooks/useActivities'
+import { useTodayEntries, useDeleteFoodEntry } from '../hooks/useFoodEntries'
+import { useTodayActivityEntries, useDeleteActivityEntry } from '../hooks/useActivities'
 import { useWeeklyCycle } from '../hooks/useWeeklyCycle'
 import { useUser } from '../hooks/useUser'
+import { useProfileContext } from '../context/ProfileContext'
 import { getWeekStartDate, todayDateInputValue } from '../lib/dates'
 
 export function TodayPage() {
-  const { data: user } = useUser()
+  const { currentProfileId } = useProfileContext()
+  const { data: user } = useUser(currentProfileId)
   const today = todayDateInputValue()
   const { data: summary } = useDailySummary(user?.id, today)
   const { data: foodEntries } = useTodayEntries(user?.id, today)
@@ -21,6 +23,30 @@ export function TodayPage() {
   const { data: weeklyCycle } = useWeeklyCycle(user?.id, weekStartDate)
   const [loggingActivity, setLoggingActivity] = useState(false)
   const [loggingWeighIn, setLoggingWeighIn] = useState(false)
+  const deleteFoodEntry = useDeleteFoodEntry()
+  const deleteActivityEntry = useDeleteActivityEntry()
+
+  function handleDeleteFoodEntry(entryId: string) {
+    if (!user) return
+    deleteFoodEntry.mutate({
+      entryId,
+      userId: user.id,
+      loggedDate: today,
+      dailyPointsAllowance: user.daily_points_allowance,
+      weeklyResetDay: user.weekly_reset_day,
+    })
+  }
+
+  function handleDeleteActivityEntry(entryId: string) {
+    if (!user) return
+    deleteActivityEntry.mutate({
+      entryId,
+      userId: user.id,
+      loggedDate: today,
+      dailyPointsAllowance: user.daily_points_allowance,
+      weeklyResetDay: user.weekly_reset_day,
+    })
+  }
 
   const allowance = user?.daily_points_allowance ?? 0
   const used = summary?.points_used ?? 0
@@ -93,6 +119,13 @@ export function TodayPage() {
               </div>
             </div>
             <div className="font-mono text-[13px] font-semibold text-[#1C2620]">{entry.points_used} pt</div>
+            <button
+              onClick={() => handleDeleteFoodEntry(entry.id)}
+              aria-label={`Remove ${entry.foods?.name ?? 'food'} entry`}
+              className="text-[#5B665D]"
+            >
+              ✕
+            </button>
           </div>
         ))}
 
@@ -103,6 +136,13 @@ export function TodayPage() {
               <div className="mt-0.5 text-[11.5px] text-[#5B665D]">Activity · {entry.duration_minutes} min</div>
             </div>
             <div className="font-mono text-[13px] font-semibold text-[#2B6E63]">+{Math.round(entry.points_earned)} pt</div>
+            <button
+              onClick={() => handleDeleteActivityEntry(entry.id)}
+              aria-label={`Remove ${entry.activities?.name ?? 'activity'} entry`}
+              className="text-[#5B665D]"
+            >
+              ✕
+            </button>
           </div>
         ))}
 

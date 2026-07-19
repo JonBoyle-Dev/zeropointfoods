@@ -10,10 +10,12 @@ const MEAL_EMOJI: Record<string, string> = {
 export function ZeroPointMealCard({
   meal,
   onLog,
+  onDelete,
   isLogging,
 }: {
   meal: ZeroPointMealWithIngredients
   onLog: () => void
+  onDelete?: () => void
   isLogging: boolean
 }) {
   return (
@@ -22,7 +24,14 @@ export function ZeroPointMealCard({
         {MEAL_EMOJI[meal.meal_type] ?? '🍽️'}
       </div>
       <div className="px-3.5 py-3">
-        <div className="text-[13.5px] font-semibold text-[#1C2620]">{meal.name}</div>
+        <div className="flex items-start justify-between">
+          <div className="text-[13.5px] font-semibold text-[#1C2620]">{meal.name}</div>
+          {meal.is_user_created && onDelete && (
+            <button onClick={onDelete} aria-label={`Delete ${meal.name}`} className="text-[11px] font-medium text-red-600">
+              Delete
+            </button>
+          )}
+        </div>
         {meal.description && <div className="mt-0.5 text-[11.5px] leading-snug text-[#5B665D]">{meal.description}</div>}
         <div className="mt-2.5 flex items-center justify-between">
           <span className="rounded-full bg-[#DCEAE6] px-2 py-0.5 font-mono text-[10.5px] font-semibold uppercase text-[#2B6E63]">

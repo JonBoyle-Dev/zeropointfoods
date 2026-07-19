@@ -1,6 +1,6 @@
 # zeropointfoods — Personal Points Tracker
 
-React + Vite + Tailwind + Supabase personal food/activity points tracker (WW-points-inspired, independently formulated — see `points-tracker-spec (1).md` §1 for the IP note). Single user, no login. **Current scope: Phase 1–4 of the 5-phase build order in `handover-doc.md` §5** — onboarding, food logging (search/favourites/recently logged/serving multiplier), recipe builder, weekly bank rollover, activity logging (FitPoints), weigh-ins with allowance recalculation, and the Zero-Point Library (Meals/Mixers/Flavor Boosters) with a curated starter content seed. Reporting/export (Phase 5) isn't built yet.
+React + Vite + Tailwind + Supabase personal food/activity points tracker (WW-points-inspired, independently formulated — see `points-tracker-spec (1).md` §1 for the IP note). **Multi-profile household app, no login/passwords** — a simple name-picker (Jackie/Jon/etc, `ProfilePicker`) selects which `users` row is "current", stored in `localStorage` via `ProfileContext`. This was a deliberate pivot away from the original "single personal user" assumption; RLS is still permissive `USING (true)` since there's still no real auth, just profile selection. **Current scope: Phase 1–4 of the 5-phase build order in `handover-doc.md` §5** — onboarding, food logging (search/favourites/recently logged/serving multiplier), recipe builder, weekly bank rollover, activity logging (FitPoints), weigh-ins with allowance recalculation, and the Zero-Point Library (Meals/Mixers/Flavor Boosters) with a curated starter content seed. Reporting/export (Phase 5) isn't built yet.
 
 ## Source-of-truth docs
 
@@ -27,9 +27,10 @@ zeropointfoods/
     │   ├── dates.ts      # toDateInputValue formats from LOCAL date parts, not toISOString — see below
     │   └── points.ts     # the 4 formulas from spec §2 — single source of truth, don't reimplement inline
     ├── types/database.ts # hand-written row types for all 12 tables, no generated schema
+    ├── context/ProfileContext.tsx # currently-selected profile id, persisted in localStorage
     ├── hooks/             # one file per table, react-query wrapped
-    ├── components/{onboarding,foods,log,today,recipes,library,common}/
-    └── pages/             # route-level screens (Onboarding, Today, Log, Foods, Recipes, Library)
+    ├── components/{onboarding,foods,log,today,recipes,library,profiles,layout,common}/
+    └── pages/             # route-level screens (ProfileSelect, Today, Log, Foods, Recipes, Library)
 ```
 
 Note on schema drift: `schema.sql` reflects the original 12-table baseline; the favourites column and activities seed data only exist via `supabase/migrations/`. A fresh install must run `schema.sql` → `policies.sql` → every file in `migrations/` in order — don't assume `schema.sql` alone is current.
@@ -61,6 +62,9 @@ If the spec's formulas change, update `points.ts` and nowhere else.
 - **Favourites are a flag on `foods`** (`is_favourite`, added in `supabase/migrations/0001_add_favourites.sql`) — the spec's data model has no dedicated favourites table, so this is the simplest fit rather than introducing one.
 - **Logging a recipe inserts one food_entries row per ingredient** (scaled by the ingredient's quantity and the servings multiplier), not a single recipe-level entry — `food_entries` has no `recipe_id` column, so this reuses the existing per-food logging/snapshot path (`useLogRecipe` in `src/hooks/useRecipes.ts`) instead of widening that table for one feature. `recipes.total_points` stays a cached display value on the recipe itself.
 - **Editing a food supports both recalculated and manually-overridden points** (`EditFoodModal` + `useUpdateFood` in `src/hooks/useFoods.ts`). The modal shows the live `calculateFoodPoints()` result next to an editable points field with a "Use calculated" button — `useUpdateFood` writes whatever's in that field verbatim, it doesn't recompute. Editing a food's points never touches past `food_entries.points_used` snapshots (verified: editing a logged food's points afterward leaves already-logged entries unchanged, per spec §5).
+- **Multiple profiles, no passwords** (`src/context/ProfileContext.tsx`, `src/components/profiles/ProfilePicker.tsx`). Ported Shop-Manager's member-picker pattern but store only the profile *id* in localStorage rather than a serialized copy of the row — zeropointfoods' `users` rows change often (weigh-ins update weight/allowance), so a cached stale copy would be more likely to mislead than help; every page re-fetches the current row fresh via `useUser(profileId)`. `foods`/`activities`/Zero-Point Library content stay global/shared across profiles — only entries, recipes, and personal `users` fields are profile-scoped.
+- **Deleting a food checks for references first, not FK errors.** `food_entries`, `recipe_ingredients`, and `zero_point_meal_ingredients` all reference `foods(id)` with `ON DELETE CASCADE` — a naive delete would silently wipe logged history or break a recipe/meal rather than erroring. `useDeleteFood` counts references in all three tables first and throws a friendly blocking error if any exist; it's also only ever offered in the UI for `is_user_created` foods (curated library content isn't user-deletable). Recipes and Zero-Point Meals don't have this hazard (nothing external references them) so their deletes are plain.
+- **Deleting a food/activity entry re-runs the same recalculation cascade as logging one** (`useDeleteFoodEntry`/`useDeleteActivityEntry` in `src/hooks/useFoodEntries.ts`/`useActivities.ts`) — delete the row, then `recalculateDailySummary` + `recalculateWeeklyCycle`, same as every log mutation.
 
 ## Local dev
 

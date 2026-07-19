@@ -4,15 +4,28 @@ import { calculateAllowance } from '../lib/points'
 import { toDateInputValue } from '../lib/dates'
 import type { ActivityLevel, Sex, UnitsPreference, User, Weekday } from '../types/database'
 
-/** Single-user app — there's exactly one row in `users`, or none yet (onboarding not done). */
-export function useUser() {
+/** All profiles, for the profile picker (spec update: household app, not single-user). */
+export function useUsers() {
   return useQuery({
-    queryKey: ['user'],
+    queryKey: ['users'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('users').select('*').maybeSingle()
+      const { data, error } = await supabase.from('users').select('*').order('name')
+      if (error) throw error
+      return data as User[]
+    },
+  })
+}
+
+/** The currently-selected profile (from ProfileContext), or null if none/not found. */
+export function useUser(profileId: string | null) {
+  return useQuery({
+    queryKey: ['user', profileId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('users').select('*').eq('id', profileId!).maybeSingle()
       if (error) throw error
       return data as User | null
     },
+    enabled: !!profileId,
   })
 }
 
@@ -59,6 +72,6 @@ export function useCreateUser() {
       if (error) throw error
       return data as User
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['user'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] }),
   })
 }

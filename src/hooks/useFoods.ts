@@ -136,6 +136,35 @@ export function useUpdateFood() {
   })
 }
 
+/**
+ * food_entries/recipe_ingredients/zero_point_meal_ingredients all reference
+ * foods with ON DELETE CASCADE, so a naive delete would silently wipe any
+ * history or recipe/meal that uses this food. This checks for references
+ * first and blocks with a clear error rather than letting that cascade happen.
+ * Only ever offered in the UI for is_user_created foods — curated library
+ * content isn't user-deletable.
+ */
+export function useDeleteFood() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (foodId: string) => {
+      const [{ count: entryCount }, { count: recipeCount }, { count: mealCount }] = await Promise.all([
+        supabase.from('food_entries').select('id', { count: 'exact', head: true }).eq('food_id', foodId),
+        supabase.from('recipe_ingredients').select('food_id', { count: 'exact', head: true }).eq('food_id', foodId),
+        supabase.from('zero_point_meal_ingredients').select('food_id', { count: 'exact', head: true }).eq('food_id', foodId),
+      ])
+
+      if (entryCount) throw new Error(`Can't delete — this food has been logged ${entryCount} time${entryCount === 1 ? '' : 's'}.`)
+      if (recipeCount) throw new Error("Can't delete — this food is used in a recipe.")
+      if (mealCount) throw new Error("Can't delete — this food is used in a Zero-Point Meal.")
+
+      const { error } = await supabase.from('foods').delete().eq('id', foodId)
+      if (error) throw error
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['foods'] }),
+  })
+}
+
 export function useMixers() {
   return useQuery({
     queryKey: ['foods', 'mixers'],

@@ -3,16 +3,18 @@ import { ZeroPointMealCard } from '../components/library/ZeroPointMealCard'
 import { ZeroPointMealBuilder } from '../components/library/ZeroPointMealBuilder'
 import { FoodRow } from '../components/log/FoodRow'
 import { LogFoodModal } from '../components/log/LogFoodModal'
-import { useZeroPointMeals, useCreateZeroPointMeal, useLogZeroPointMeal } from '../hooks/useZeroPointMeals'
+import { useZeroPointMeals, useCreateZeroPointMeal, useLogZeroPointMeal, useDeleteZeroPointMeal } from '../hooks/useZeroPointMeals'
 import { useFoods, useMixers, useFlavorBoosters, useToggleFavourite } from '../hooks/useFoods'
 import { useUser } from '../hooks/useUser'
+import { useProfileContext } from '../context/ProfileContext'
 import { todayDateInputValue } from '../lib/dates'
 import type { Food } from '../types/database'
 
 type LibraryTab = 'meals' | 'mixers' | 'boosters'
 
 export function LibraryPage() {
-  const { data: user } = useUser()
+  const { currentProfileId } = useProfileContext()
+  const { data: user } = useUser(currentProfileId)
   const [tab, setTab] = useState<LibraryTab>('meals')
   const [loggingFood, setLoggingFood] = useState<Food | null>(null)
   const [loggingMealId, setLoggingMealId] = useState<string | null>(null)
@@ -26,9 +28,15 @@ export function LibraryPage() {
 
   const createMeal = useCreateZeroPointMeal()
   const logMeal = useLogZeroPointMeal()
+  const deleteMeal = useDeleteZeroPointMeal()
 
   function handleToggleFavourite(food: Food) {
     toggleFavourite.mutate({ foodId: food.id, isFavourite: !food.is_favourite })
+  }
+
+  function handleDeleteMeal(meal: NonNullable<typeof meals>[number]) {
+    if (!window.confirm(`Delete "${meal.name}"? This can't be undone.`)) return
+    deleteMeal.mutate(meal.id)
   }
 
   function handleLogMeal(meal: NonNullable<typeof meals>[number]) {
@@ -67,7 +75,13 @@ export function LibraryPage() {
       {tab === 'meals' && (
         <div>
           {meals?.map((meal) => (
-            <ZeroPointMealCard key={meal.id} meal={meal} onLog={() => handleLogMeal(meal)} isLogging={loggingMealId === meal.id} />
+            <ZeroPointMealCard
+              key={meal.id}
+              meal={meal}
+              onLog={() => handleLogMeal(meal)}
+              onDelete={() => handleDeleteMeal(meal)}
+              isLogging={loggingMealId === meal.id}
+            />
           ))}
           {meals?.length === 0 && <p className="mb-3 text-sm text-[#5B665D]">No zero-point meals yet.</p>}
         </div>

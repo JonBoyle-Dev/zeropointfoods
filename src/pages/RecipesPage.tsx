@@ -1,18 +1,26 @@
 import { useState } from 'react'
 import { RecipeBuilder } from '../components/recipes/RecipeBuilder'
 import { LogRecipeModal } from '../components/recipes/LogRecipeModal'
-import { useCreateRecipe, useRecipes } from '../hooks/useRecipes'
+import { useCreateRecipe, useDeleteRecipe, useRecipes } from '../hooks/useRecipes'
 import type { RecipeWithIngredients } from '../hooks/useRecipes'
 import { useFoods } from '../hooks/useFoods'
 import { useUser } from '../hooks/useUser'
+import { useProfileContext } from '../context/ProfileContext'
 import { todayDateInputValue } from '../lib/dates'
 
 export function RecipesPage() {
-  const { data: user } = useUser()
+  const { currentProfileId } = useProfileContext()
+  const { data: user } = useUser(currentProfileId)
   const { data: foods } = useFoods()
   const { data: recipes, isLoading } = useRecipes(user?.id)
   const createRecipe = useCreateRecipe()
+  const deleteRecipe = useDeleteRecipe()
   const [loggingRecipe, setLoggingRecipe] = useState<RecipeWithIngredients | null>(null)
+
+  function handleDelete(recipe: RecipeWithIngredients) {
+    if (!window.confirm(`Delete "${recipe.name}"? This can't be undone.`)) return
+    deleteRecipe.mutate(recipe.id)
+  }
 
   return (
     <div className="mx-auto max-w-md px-4 py-8 pb-24">
@@ -39,6 +47,9 @@ export function RecipesPage() {
               </div>
               <div className="flex items-center gap-3">
                 <span className="font-mono text-slate-700">{recipe.total_points} pts</span>
+                <button onClick={() => handleDelete(recipe)} className="text-xs font-medium text-red-600" aria-label={`Delete ${recipe.name}`}>
+                  Delete
+                </button>
                 <button
                   onClick={() => setLoggingRecipe(recipe)}
                   className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white"

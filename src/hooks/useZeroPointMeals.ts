@@ -75,6 +75,18 @@ export function useCreateZeroPointMeal() {
   })
 }
 
+/** Only ever offered in the UI for is_user_created meals — curated library content isn't user-deletable. */
+export function useDeleteZeroPointMeal() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (mealId: string) => {
+      const { error } = await supabase.from('zero_point_meals').delete().eq('id', mealId)
+      if (error) throw error
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['zeroPointMeals'] }),
+  })
+}
+
 export interface LogZeroPointMealInput {
   userId: string
   meal: ZeroPointMealWithIngredients

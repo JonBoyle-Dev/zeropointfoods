@@ -62,6 +62,17 @@ export function useCreateRecipe() {
   })
 }
 
+export function useDeleteRecipe() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (recipeId: string) => {
+      const { error } = await supabase.from('recipes').delete().eq('id', recipeId)
+      if (error) throw error
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['recipes'] }),
+  })
+}
+
 export interface LogRecipeInput {
   userId: string
   recipe: RecipeWithIngredients

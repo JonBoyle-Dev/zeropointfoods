@@ -3,17 +3,27 @@ import { Link } from 'react-router-dom'
 import { AddFoodForm } from '../components/foods/AddFoodForm'
 import { EditFoodModal } from '../components/foods/EditFoodModal'
 import { LogFoodModal } from '../components/log/LogFoodModal'
-import { useCreateFood, useFoods } from '../hooks/useFoods'
+import { useCreateFood, useDeleteFood, useFoods } from '../hooks/useFoods'
 import { useUser } from '../hooks/useUser'
+import { useProfileContext } from '../context/ProfileContext'
 import { todayDateInputValue } from '../lib/dates'
 import type { Food } from '../types/database'
 
 export function FoodsPage() {
+  const { currentProfileId } = useProfileContext()
   const { data: foods, isLoading } = useFoods()
-  const { data: user } = useUser()
+  const { data: user } = useUser(currentProfileId)
   const createFood = useCreateFood()
+  const deleteFood = useDeleteFood()
   const [loggingFood, setLoggingFood] = useState<Food | null>(null)
   const [editingFood, setEditingFood] = useState<Food | null>(null)
+
+  function handleDelete(food: Food) {
+    if (!window.confirm(`Delete "${food.name}"? This can't be undone.`)) return
+    deleteFood.mutate(food.id, {
+      onError: (error) => window.alert((error as Error).message),
+    })
+  }
 
   return (
     <div className="mx-auto max-w-md px-4 py-8 pb-24">
@@ -51,6 +61,15 @@ export function FoodsPage() {
                 >
                   Edit
                 </button>
+                {food.is_user_created && (
+                  <button
+                    onClick={() => handleDelete(food)}
+                    className="text-xs font-medium text-red-600"
+                    aria-label={`Delete ${food.name}`}
+                  >
+                    Delete
+                  </button>
+                )}
                 {user && (
                   <button
                     onClick={() => setLoggingFood(food)}

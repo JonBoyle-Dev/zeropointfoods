@@ -64,6 +64,34 @@ export interface LogFoodEntryInput {
   weeklyResetDay: Weekday
 }
 
+export interface DeleteFoodEntryInput {
+  entryId: string
+  userId: string
+  loggedDate: string
+  dailyPointsAllowance: number
+  weeklyResetDay: Weekday
+}
+
+export function useDeleteFoodEntry() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (input: DeleteFoodEntryInput) => {
+      const { error } = await supabase.from('food_entries').delete().eq('id', input.entryId)
+      if (error) throw error
+
+      await recalculateDailySummary(input.userId, input.loggedDate, input.dailyPointsAllowance)
+      await recalculateWeeklyCycle(input.userId, input.weeklyResetDay, input.loggedDate)
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['foodEntries', variables.userId, variables.loggedDate] })
+      queryClient.invalidateQueries({ queryKey: ['recentlyLoggedFoods', variables.userId] })
+      queryClient.invalidateQueries({ queryKey: ['dailySummary', variables.userId, variables.loggedDate] })
+      const weekStartDate = getWeekStartDate(variables.loggedDate, variables.weeklyResetDay)
+      queryClient.invalidateQueries({ queryKey: ['weeklyCycle', variables.userId, weekStartDate] })
+    },
+  })
+}
+
 export function useLogFoodEntry() {
   const queryClient = useQueryClient()
   return useMutation({
