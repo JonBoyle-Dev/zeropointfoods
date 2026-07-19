@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AddFoodForm } from '../components/foods/AddFoodForm'
+import { EditFoodModal } from '../components/foods/EditFoodModal'
 import { LogFoodModal } from '../components/log/LogFoodModal'
 import { useCreateFood, useFoods } from '../hooks/useFoods'
 import { useUser } from '../hooks/useUser'
@@ -12,6 +13,7 @@ export function FoodsPage() {
   const { data: user } = useUser()
   const createFood = useCreateFood()
   const [loggingFood, setLoggingFood] = useState<Food | null>(null)
+  const [editingFood, setEditingFood] = useState<Food | null>(null)
 
   return (
     <div className="mx-auto max-w-md px-4 py-8">
@@ -43,6 +45,12 @@ export function FoodsPage() {
               </div>
               <div className="flex items-center gap-3">
                 <span className="font-mono text-slate-700">{food.points_per_serving} pts</span>
+                <button
+                  onClick={() => setEditingFood(food)}
+                  className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700"
+                >
+                  Edit
+                </button>
                 {user && (
                   <button
                     onClick={() => setLoggingFood(food)}
@@ -61,6 +69,8 @@ export function FoodsPage() {
       {loggingFood && user && (
         <LogFoodModal food={loggingFood} user={user} loggedDate={todayDateInputValue()} onClose={() => setLoggingFood(null)} />
       )}
+
+      {editingFood && <EditFoodModal food={editingFood} onClose={() => setEditingFood(null)} />}
     </div>
   )
 }
