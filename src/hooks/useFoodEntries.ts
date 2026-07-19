@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { recalculateDailySummary } from './useDailySummary'
-import type { FoodEntry, MealType } from '../types/database'
+import type { Food, FoodEntry, MealType } from '../types/database'
 
 export type FoodEntryWithFoodName = FoodEntry & { foods: { name: string } | null }
 
@@ -17,6 +17,35 @@ export function useTodayEntries(userId: string | undefined, date: string) {
         .order('id')
       if (error) throw error
       return data as unknown as FoodEntryWithFoodName[]
+    },
+    enabled: !!userId,
+  })
+}
+
+const RECENTLY_LOGGED_LIMIT = 8
+
+/** Most recently logged distinct foods, newest first — powers the "Recently logged" section (handover-doc §5 step 5). */
+export function useRecentlyLoggedFoods(userId: string | undefined) {
+  return useQuery({
+    queryKey: ['recentlyLoggedFoods', userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('food_entries')
+        .select('food_id, logged_date, foods(*)')
+        .eq('user_id', userId!)
+        .order('logged_date', { ascending: false })
+        .limit(30)
+      if (error) throw error
+
+      const seen = new Set<string>()
+      const recentFoods: Food[] = []
+      for (const entry of data as unknown as { food_id: string; foods: Food | null }[]) {
+        if (!entry.foods || seen.has(entry.food_id)) continue
+        seen.add(entry.food_id)
+        recentFoods.push(entry.foods)
+        if (recentFoods.length >= RECENTLY_LOGGED_LIMIT) break
+      }
+      return recentFoods
     },
     enabled: !!userId,
   })

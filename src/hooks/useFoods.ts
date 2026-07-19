@@ -3,14 +3,34 @@ import { supabase } from '../lib/supabase'
 import { calculateFoodPoints } from '../lib/points'
 import type { Food, FoodCategory } from '../types/database'
 
-export function useFoods() {
+export interface FoodFilters {
+  search?: string
+  category?: FoodCategory | 'all'
+}
+
+export function useFoods(filters: FoodFilters = {}) {
+  const { search, category } = filters
   return useQuery({
-    queryKey: ['foods'],
+    queryKey: ['foods', search ?? '', category ?? 'all'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('foods').select('*').order('name')
+      let query = supabase.from('foods').select('*').order('name')
+      if (search) query = query.ilike('name', `%${search}%`)
+      if (category && category !== 'all') query = query.eq('category', category)
+      const { data, error } = await query
       if (error) throw error
       return data as Food[]
     },
+  })
+}
+
+export function useToggleFavourite() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ foodId, isFavourite }: { foodId: string; isFavourite: boolean }) => {
+      const { error } = await supabase.from('foods').update({ is_favourite: isFavourite }).eq('id', foodId)
+      if (error) throw error
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['foods'] }),
   })
 }
 

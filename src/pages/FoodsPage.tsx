@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { AddFoodForm } from '../components/foods/AddFoodForm'
 import { LogFoodModal } from '../components/log/LogFoodModal'
 import { useCreateFood, useFoods } from '../hooks/useFoods'
@@ -14,7 +15,12 @@ export function FoodsPage() {
 
   return (
     <div className="mx-auto max-w-md px-4 py-8">
-      <h1 className="text-lg font-semibold text-slate-900">Foods</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-lg font-semibold text-slate-900">Foods</h1>
+        <Link to="/log" className="text-xs font-medium text-slate-500">
+          ← Back to log
+        </Link>
+      </div>
 
       <div className="mt-4 rounded-xl border border-slate-200 p-4">
         <h2 className="text-sm font-medium text-slate-700">Add a new food</h2>

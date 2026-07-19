@@ -48,7 +48,7 @@ export function TodayPage() {
 
         <div className="mt-6 mb-2.5 flex items-center justify-between font-['Space_Grotesk',sans-serif] text-[15px] font-semibold text-[#1C2620]">
           <span>Logged today</span>
-          <Link to="/foods" className="text-[12px] font-medium text-[#2B6E63]">
+          <Link to="/log" className="text-[12px] font-medium text-[#2B6E63]">
             Log food
           </Link>
         </div>

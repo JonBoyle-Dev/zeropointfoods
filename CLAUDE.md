@@ -1,6 +1,6 @@
 # zeropointfoods — Personal Points Tracker
 
-React + Vite + Tailwind + Supabase personal food/activity points tracker (WW-points-inspired, independently formulated — see `points-tracker-spec (1).md` §1 for the IP note). Single user, no login. **Current scope: Phase 1 of the 5-phase build order in `handover-doc.md` §5** — onboarding, manual food entry, logging a food, and the Today screen dial. Search/favourites, recipes, banking, activities, the Zero-Point Library, and reporting are later phases, not yet built.
+React + Vite + Tailwind + Supabase personal food/activity points tracker (WW-points-inspired, independently formulated — see `points-tracker-spec (1).md` §1 for the IP note). Single user, no login. **Current scope: Phase 1–2 of the 5-phase build order in `handover-doc.md` §5** — onboarding, food logging (search/favourites/recently logged/serving multiplier), recipe builder, and the Today screen dial. Weekly banking, activities, the Zero-Point Library, and reporting are later phases, not yet built.
 
 ## Source-of-truth docs
 
@@ -16,7 +16,8 @@ zeropointfoods/
 ├── supabase/
 │   ├── schema.sql     # 12 tables, enums, indexes — run first
 │   ├── policies.sql   # RLS (enabled, permissive — no auth exists) — run second
-│   └── seed.sql       # placeholder — real content seeding is a later task (handover-doc §6)
+│   ├── seed.sql       # placeholder — real content seeding is a later task (handover-doc §6)
+│   └── migrations/    # incremental changes for already-provisioned projects, run in filename order
 └── src/
     ├── lib/
     │   ├── supabase.ts   # client singleton, no generic Database type (hand-typed per hook instead)
@@ -24,8 +25,8 @@ zeropointfoods/
     │   └── points.ts     # the 4 formulas from spec §2 — single source of truth, don't reimplement inline
     ├── types/database.ts # hand-written row types for all 12 tables, no generated schema
     ├── hooks/             # one file per table, react-query wrapped
-    ├── components/{onboarding,foods,log,today,common}/
-    └── pages/             # route-level screens
+    ├── components/{onboarding,foods,log,today,recipes,common}/
+    └── pages/             # route-level screens (Onboarding, Today, Log, Foods, Recipes)
 ```
 
 ## Formula reference
@@ -46,10 +47,12 @@ If the spec's formulas change, update `points.ts` and nowhere else.
 - **Weekly cycles are keyed to the user's own `weekly_reset_day`** — never hardcode Monday-start logic anywhere (spec §5). Weekly banking itself (`weekly_cycles`) isn't wired up yet — that's Phase 3.
 - **Mixers and flavor boosters are flags on `foods`** (`is_mixer`, `is_flavor_booster`), not separate tables — logging them goes through the same food-entry flow as everything else.
 - **Dates must be formatted from local `Date` parts, never `.toISOString().slice(0,10)`.** UTC conversion silently shifts the date backward a day in positive-UTC-offset timezones once round-tripped through a local `Date` construction. Use `toDateInputValue`/`todayDateInputValue` from `src/lib/dates.ts`.
+- **Favourites are a flag on `foods`** (`is_favourite`, added in `supabase/migrations/0001_add_favourites.sql`) — the spec's data model has no dedicated favourites table, so this is the simplest fit rather than introducing one.
+- **Logging a recipe inserts one food_entries row per ingredient** (scaled by the ingredient's quantity and the servings multiplier), not a single recipe-level entry — `food_entries` has no `recipe_id` column, so this reuses the existing per-food logging/snapshot path (`useLogRecipe` in `src/hooks/useRecipes.ts`) instead of widening that table for one feature. `recipes.total_points` stays a cached display value on the recipe itself.
 
 ## Local dev
 
-Requires a real Supabase project — copy `.env.local.example` to `.env.local` and fill in your project's URL + anon key. Run `supabase/schema.sql` then `supabase/policies.sql` in the Supabase SQL editor before first use.
+Requires a real Supabase project — copy `.env.local.example` to `.env.local` and fill in your project's URL + anon key. Run `supabase/schema.sql`, then `supabase/policies.sql`, then everything in `supabase/migrations/` in filename order, in the Supabase SQL editor before first use.
 
 ```
 npm install

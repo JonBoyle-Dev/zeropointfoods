@@ -2,6 +2,8 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { OnboardingPage } from './pages/OnboardingPage'
 import { TodayPage } from './pages/TodayPage'
 import { FoodsPage } from './pages/FoodsPage'
+import { LogPage } from './pages/LogPage'
+import { RecipesPage } from './pages/RecipesPage'
 import { useUser } from './hooks/useUser'
 
 function HomeRoute() {
@@ -16,7 +18,9 @@ function App() {
     <Routes>
       <Route path="/" element={<HomeRoute />} />
       <Route path="/today" element={<TodayPage />} />
+      <Route path="/log" element={<LogPage />} />
       <Route path="/foods" element={<FoodsPage />} />
+      <Route path="/recipes" element={<RecipesPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

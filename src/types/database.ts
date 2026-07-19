@@ -48,6 +48,7 @@ export interface Food {
   is_zero_point: boolean
   is_mixer: boolean
   is_flavor_booster: boolean
+  is_favourite: boolean
   is_user_created: boolean
   created_by_user_id: string | null
 }
