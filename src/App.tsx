@@ -9,6 +9,7 @@ import { LibraryPage } from './pages/LibraryPage'
 import { BottomNav } from './components/layout/BottomNav'
 import { ProfileBadge } from './components/layout/ProfileBadge'
 import { useProfileContext } from './context/ProfileContext'
+import { useUser } from './hooks/useUser'
 
 function HomeRoute() {
   const { currentProfileId } = useProfileContext()
@@ -16,10 +17,22 @@ function HomeRoute() {
   return <Navigate to="/today" replace />
 }
 
-/** Redirects to the profile picker if no profile is selected — e.g. a direct URL visit after localStorage was cleared. */
+/**
+ * Redirects to the profile picker if no profile is selected, or if the
+ * selected profile no longer exists (e.g. it was deleted directly in
+ * Supabase — localStorage still remembers the id, so without this check
+ * every page would render a broken "ghost" dashboard for a nonexistent user).
+ */
 function RequireProfile({ children }: { children: ReactNode }) {
-  const { currentProfileId } = useProfileContext()
+  const { currentProfileId, setCurrentProfileId } = useProfileContext()
+  const { data: user, isLoading } = useUser(currentProfileId)
+
   if (!currentProfileId) return <Navigate to="/" replace />
+  if (isLoading) return null
+  if (!user) {
+    setCurrentProfileId(null)
+    return <Navigate to="/" replace />
+  }
   return <>{children}</>
 }
 
