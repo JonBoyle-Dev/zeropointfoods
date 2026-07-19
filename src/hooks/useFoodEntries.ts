@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { recalculateDailySummary } from './useDailySummary'
-import type { Food, FoodEntry, MealType } from '../types/database'
+import { recalculateWeeklyCycle } from './useWeeklyCycle'
+import { getWeekStartDate } from '../lib/dates'
+import type { Food, FoodEntry, MealType, Weekday } from '../types/database'
 
 export type FoodEntryWithFoodName = FoodEntry & { foods: { name: string } | null }
 
@@ -59,6 +61,7 @@ export interface LogFoodEntryInput {
   quantity: number
   pointsPerServing: number
   dailyPointsAllowance: number
+  weeklyResetDay: Weekday
 }
 
 export function useLogFoodEntry() {
@@ -83,12 +86,15 @@ export function useLogFoodEntry() {
       if (error) throw error
 
       await recalculateDailySummary(input.userId, input.loggedDate, input.dailyPointsAllowance)
+      await recalculateWeeklyCycle(input.userId, input.weeklyResetDay, input.loggedDate)
 
       return data as FoodEntry
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['foodEntries', variables.userId, variables.loggedDate] })
       queryClient.invalidateQueries({ queryKey: ['dailySummary', variables.userId, variables.loggedDate] })
+      const weekStartDate = getWeekStartDate(variables.loggedDate, variables.weeklyResetDay)
+      queryClient.invalidateQueries({ queryKey: ['weeklyCycle', variables.userId, weekStartDate] })
     },
   })
 }

@@ -59,13 +59,7 @@ export function FoodsPage() {
       </div>
 
       {loggingFood && user && (
-        <LogFoodModal
-          food={loggingFood}
-          userId={user.id}
-          loggedDate={todayDateInputValue()}
-          dailyPointsAllowance={user.daily_points_allowance}
-          onClose={() => setLoggingFood(null)}
-        />
+        <LogFoodModal food={loggingFood} user={user} loggedDate={todayDateInputValue()} onClose={() => setLoggingFood(null)} />
       )}
     </div>
   )

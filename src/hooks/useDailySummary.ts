@@ -24,9 +24,11 @@ export function useDailySummary(userId: string | undefined, date: string) {
  * Called after any food/activity log action so `daily_summary` stays a cheap
  * read for reports rather than recomputed from raw entries on every load (spec §5).
  *
- * Weekly bank rollover (spec §2.4) is Phase 3 — rollover_to_weekly stays 0 until
- * weekly_cycles is wired up, so is_over_budget for now just means "over today's
- * allowance" rather than accounting for a banked cushion.
+ * is_over_budget and rollover_to_weekly here are only a first-pass estimate
+ * (ignoring the weekly bank cushion) — every call site immediately follows this
+ * with recalculateWeeklyCycle (src/hooks/useWeeklyCycle.ts), which overwrites
+ * both with the real banking-aware values. This function still needs to run
+ * first so the bank fold has this day's up-to-date points_used to read.
  */
 export async function recalculateDailySummary(userId: string, date: string, pointsAllowance: number) {
   const [{ data: foodEntries, error: foodError }, { data: activityEntries, error: activityError }] = await Promise.all([

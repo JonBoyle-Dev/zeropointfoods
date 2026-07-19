@@ -59,13 +59,7 @@ export function RecipesPage() {
       </div>
 
       {loggingRecipe && user && (
-        <LogRecipeModal
-          recipe={loggingRecipe}
-          userId={user.id}
-          loggedDate={todayDateInputValue()}
-          dailyPointsAllowance={user.daily_points_allowance}
-          onClose={() => setLoggingRecipe(null)}
-        />
+        <LogRecipeModal recipe={loggingRecipe} user={user} loggedDate={todayDateInputValue()} onClose={() => setLoggingRecipe(null)} />
       )}
     </div>
   )

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Modal } from '../common/Modal'
 import { useLogFoodEntry } from '../../hooks/useFoodEntries'
-import type { Food, MealType } from '../../types/database'
+import type { Food, MealType, User } from '../../types/database'
 
 const MEAL_TYPES: { value: MealType; label: string }[] = [
   { value: 'breakfast', label: 'Breakfast' },
@@ -12,15 +12,13 @@ const MEAL_TYPES: { value: MealType; label: string }[] = [
 
 export function LogFoodModal({
   food,
-  userId,
+  user,
   loggedDate,
-  dailyPointsAllowance,
   onClose,
 }: {
   food: Food
-  userId: string
+  user: User
   loggedDate: string
-  dailyPointsAllowance: number
   onClose: () => void
 }) {
   const [quantity, setQuantity] = useState('1')
@@ -30,13 +28,14 @@ export function LogFoodModal({
   function handleSubmit() {
     logEntry.mutate(
       {
-        userId,
+        userId: user.id,
         foodId: food.id,
         loggedDate,
         mealType,
         quantity: Number(quantity),
         pointsPerServing: food.points_per_serving,
-        dailyPointsAllowance,
+        dailyPointsAllowance: user.daily_points_allowance,
+        weeklyResetDay: user.weekly_reset_day,
       },
       { onSuccess: onClose }
     )

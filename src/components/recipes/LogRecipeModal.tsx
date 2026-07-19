@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Modal } from '../common/Modal'
 import { useLogRecipe } from '../../hooks/useRecipes'
 import type { RecipeWithIngredients } from '../../hooks/useRecipes'
-import type { MealType } from '../../types/database'
+import type { MealType, User } from '../../types/database'
 
 const MEAL_TYPES: { value: MealType; label: string }[] = [
   { value: 'breakfast', label: 'Breakfast' },
@@ -13,15 +13,13 @@ const MEAL_TYPES: { value: MealType; label: string }[] = [
 
 export function LogRecipeModal({
   recipe,
-  userId,
+  user,
   loggedDate,
-  dailyPointsAllowance,
   onClose,
 }: {
   recipe: RecipeWithIngredients
-  userId: string
+  user: User
   loggedDate: string
-  dailyPointsAllowance: number
   onClose: () => void
 }) {
   const [servings, setServings] = useState('1')
@@ -30,7 +28,15 @@ export function LogRecipeModal({
 
   function handleSubmit() {
     logRecipe.mutate(
-      { userId, recipe, loggedDate, mealType, servings: Number(servings), dailyPointsAllowance },
+      {
+        userId: user.id,
+        recipe,
+        loggedDate,
+        mealType,
+        servings: Number(servings),
+        dailyPointsAllowance: user.daily_points_allowance,
+        weeklyResetDay: user.weekly_reset_day,
+      },
       { onSuccess: onClose }
     )
   }
