@@ -16,11 +16,13 @@ zeropointfoods/
 ├── supabase/
 │   ├── schema.sql     # 12 tables, enums, indexes — run first
 │   ├── policies.sql   # RLS (enabled, permissive — no auth exists) — run second
-│   ├── seed.sql       # placeholder only — real content lives in migrations/0003
+│   ├── seed.sql       # placeholder only — real content lives in migrations/
 │   └── migrations/    # incremental changes for already-provisioned projects, run in filename order
 │       ├── 0001_add_favourites.sql
 │       ├── 0002_seed_activities.sql
-│       └── 0003_seed_content.sql   # ~76 curated foods + 16 Zero-Point Meals + mixers/boosters (handover-doc §6)
+│       ├── 0003_seed_content.sql              # superseded — foods/meals from this migration deleted by 0004
+│       ├── 0004_replace_food_database.sql     # ~250 curated foods, real WW-style points table (see below)
+│       └── 0005_rebuild_zero_point_meals.sql  # 16 Zero-Point Meals rebuilt against the 0004 food names
 └── src/
     ├── lib/
     │   ├── supabase.ts   # client singleton, no generic Database type (hand-typed per hook instead)
@@ -47,7 +49,7 @@ If the spec's formulas change, update `points.ts` and nowhere else.
 
 ## Key design decisions
 
-- **No auth.** Single personal user — RLS stays *enabled* with permissive `USING (true)` policies rather than disabled, to avoid tripping Supabase's security linter and to document the openness as intentional. If this ever becomes multi-user or gets shared, swap in Supabase Auth + `auth.uid()`-scoped policies first.
+- **No auth, but multi-profile.** RLS stays *enabled* with permissive `USING (true)` policies rather than disabled, to avoid tripping Supabase's security linter and to document the openness as intentional — profile selection (see below) is not a security boundary, just a UI convenience for a trusted household. If this ever needs real access control, swap in Supabase Auth + `auth.uid()`-scoped policies first.
 - **Snapshot, don't recalculate retroactively.** `food_entries.points_used` and `activity_entries.points_earned` are stored at log time — editing a food/activity later doesn't rewrite history (spec §5).
 - **`daily_summary` is materialized**, not computed live — `recalculateDailySummary` in `src/hooks/useDailySummary.ts` upserts it after every log action, so reports don't recompute from raw entries on every load.
 - **Weekly cycles are keyed to the user's own `weekly_reset_day`** — never hardcode Monday-start logic anywhere (spec §5). `getWeekStartDate` in `src/lib/dates.ts` finds the most recent occurrence of that weekday on/before a given date.
@@ -65,6 +67,8 @@ If the spec's formulas change, update `points.ts` and nowhere else.
 - **Multiple profiles, no passwords** (`src/context/ProfileContext.tsx`, `src/components/profiles/ProfilePicker.tsx`). Ported Shop-Manager's member-picker pattern but store only the profile *id* in localStorage rather than a serialized copy of the row — zeropointfoods' `users` rows change often (weigh-ins update weight/allowance), so a cached stale copy would be more likely to mislead than help; every page re-fetches the current row fresh via `useUser(profileId)`. `foods`/`activities`/Zero-Point Library content stay global/shared across profiles — only entries, recipes, and personal `users` fields are profile-scoped.
 - **Deleting a food checks for references first, not FK errors.** `food_entries`, `recipe_ingredients`, and `zero_point_meal_ingredients` all reference `foods(id)` with `ON DELETE CASCADE` — a naive delete would silently wipe logged history or break a recipe/meal rather than erroring. `useDeleteFood` counts references in all three tables first and throws a friendly blocking error if any exist; it's also only ever offered in the UI for `is_user_created` foods (curated library content isn't user-deletable). Recipes and Zero-Point Meals don't have this hazard (nothing external references them) so their deletes are plain.
 - **Deleting a food/activity entry re-runs the same recalculation cascade as logging one** (`useDeleteFoodEntry`/`useDeleteActivityEntry` in `src/hooks/useFoodEntries.ts`/`useActivities.ts`) — delete the row, then `recalculateDailySummary` + `recalculateWeeklyCycle`, same as every log mutation.
+- **`points_per_serving` has two sources of truth, both stored the same way.** Foods added via `AddFoodForm` get it calculated from macros (`calculateFoodPoints`). The curated food database (`supabase/migrations/0004_replace_food_database.sql`, replacing the invented Phase 4 seed) is a real South African WW Freestyle-style points reference table the user provided — points there are *given* directly, not derived, and `calories`/`sat_fat_g`/`sugar_g`/`protein_g` are all `0` placeholders since that macro data was never provided. Nothing in the app recomputes `points_per_serving` from those zeros automatically; `EditFoodModal`'s "Calculated from the values above" preview will show a bogus near-0 result for these rows — that's expected, just leave the points field alone (don't click "Use calculated") when editing an imported food.
+- **`0004` also deletes and replaces the old curated Zero-Point Meals** (rebuilt in `0005_rebuild_zero_point_meals.sql` using the new food names) and, because `food_entries`/`recipe_ingredients` cascade from `foods`, silently removes any previously-logged entries that referenced the old curated (non-`is_user_created`) foods. `0004`'s last step reconciles `daily_summary.points_used` for affected days; `weekly_cycles`/`rollover_to_weekly` self-correct the next time anyone logs or deletes something.
 
 ## Local dev
 
