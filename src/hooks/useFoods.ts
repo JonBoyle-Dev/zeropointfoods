@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
-import { calculateFoodPoints } from '../lib/points'
 import type { Food, FoodCategory } from '../types/database'
 
 export interface FoodFilters {
@@ -37,12 +36,9 @@ export function useToggleFavourite() {
 export interface NewFoodInput {
   name: string
   category: FoodCategory
-  calories: number
-  satFatG: number
-  sugarG: number
-  proteinG: number
   servingSize: number
   servingUnit: string
+  pointsPerServing: number
   isZeroPoint?: boolean
   isMixer?: boolean
   isFlavorBooster?: boolean
@@ -52,27 +48,14 @@ export function useCreateFood() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (input: NewFoodInput) => {
-      const pointsPerServing = calculateFoodPoints({
-        calories: input.calories,
-        satFatG: input.satFatG,
-        sugarG: input.sugarG,
-        proteinG: input.proteinG,
-        isZeroPoint: input.isZeroPoint ?? false,
-        category: input.category,
-      })
-
       const { data, error } = await supabase
         .from('foods')
         .insert({
           name: input.name,
           category: input.category,
-          calories: input.calories,
-          sat_fat_g: input.satFatG,
-          sugar_g: input.sugarG,
-          protein_g: input.proteinG,
           serving_size: input.servingSize,
           serving_unit: input.servingUnit,
-          points_per_serving: pointsPerServing,
+          points_per_serving: input.pointsPerServing,
           is_zero_point: input.isZeroPoint ?? false,
           is_mixer: input.isMixer ?? false,
           is_flavor_booster: input.isFlavorBooster ?? false,
@@ -91,10 +74,6 @@ export interface UpdateFoodInput {
   foodId: string
   name: string
   category: FoodCategory
-  calories: number
-  satFatG: number
-  sugarG: number
-  proteinG: number
   servingSize: number
   servingUnit: string
   pointsPerServing: number
@@ -103,12 +82,7 @@ export interface UpdateFoodInput {
   isFlavorBooster: boolean
 }
 
-/**
- * pointsPerServing is taken as-is rather than recalculated here — EditFoodModal
- * shows the live calculateFoodPoints() result alongside an editable field, so
- * the caller has already decided (recalculated or manually overridden) by the
- * time this runs. Past food_entries.points_used snapshots are untouched (spec §5).
- */
+/** points_per_serving is always a direct, user-entered/overridden value — there's no macro-based calculation to reconcile it against. Past food_entries.points_used snapshots are untouched (spec §5). */
 export function useUpdateFood() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -118,10 +92,6 @@ export function useUpdateFood() {
         .update({
           name: input.name,
           category: input.category,
-          calories: input.calories,
-          sat_fat_g: input.satFatG,
-          sugar_g: input.sugarG,
-          protein_g: input.proteinG,
           serving_size: input.servingSize,
           serving_unit: input.servingUnit,
           points_per_serving: input.pointsPerServing,

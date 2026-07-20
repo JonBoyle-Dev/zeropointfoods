@@ -1,4 +1,4 @@
-import type { ActivityLevel, FoodCategory, Sex } from '../types/database'
+import type { ActivityLevel, Sex } from '../types/database'
 
 const SEX_OFFSET: Record<Sex, number> = {
   female: -2,
@@ -36,24 +36,6 @@ export function calculateAllowance(input: AllowanceInput): number {
     sexOffset +
     activityBonus
   return Math.max(allowance, MIN_DAILY_ALLOWANCE)
-}
-
-export interface FoodPointsInput {
-  calories: number
-  satFatG: number
-  sugarG: number
-  proteinG: number
-  isZeroPoint: boolean
-  category: FoodCategory
-}
-
-/** Food points per serving — spec §2.2. Alcohol is never zero-point regardless of the flag. */
-export function calculateFoodPoints(input: FoodPointsInput): number {
-  if (input.isZeroPoint && input.category !== 'alcohol') return 0
-  const points = Math.round(
-    input.calories / 33 + input.satFatG * 0.4 + input.sugarG * 0.3 - input.proteinG * 0.2
-  )
-  return Math.max(points, 0)
 }
 
 export interface ActivityPointsInput {

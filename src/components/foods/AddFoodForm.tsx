@@ -16,17 +16,14 @@ const CATEGORIES: { value: FoodCategory; label: string }[] = [
 export function AddFoodForm({ onSubmit, isSubmitting }: { onSubmit: (input: NewFoodInput) => void; isSubmitting: boolean }) {
   const [name, setName] = useState('')
   const [category, setCategory] = useState<FoodCategory>('custom')
-  const [calories, setCalories] = useState('')
-  const [satFatG, setSatFatG] = useState('')
-  const [sugarG, setSugarG] = useState('')
-  const [proteinG, setProteinG] = useState('')
+  const [pointsPerServing, setPointsPerServing] = useState('')
   const [servingSize, setServingSize] = useState('1')
   const [servingUnit, setServingUnit] = useState('serving')
   const [isZeroPoint, setIsZeroPoint] = useState(false)
   const [isMixer, setIsMixer] = useState(false)
   const [isFlavorBooster, setIsFlavorBooster] = useState(false)
 
-  const isValid = name.trim() && calories && servingSize && servingUnit.trim()
+  const isValid = name.trim() && pointsPerServing !== '' && servingSize && servingUnit.trim()
   // Alcohol is never zero-point regardless of the checkbox (spec §2.2, backstopped by a DB check constraint).
   const zeroPointDisabled = category === 'alcohol'
 
@@ -36,10 +33,7 @@ export function AddFoodForm({ onSubmit, isSubmitting }: { onSubmit: (input: NewF
     onSubmit({
       name: name.trim(),
       category,
-      calories: Number(calories),
-      satFatG: Number(satFatG || 0),
-      sugarG: Number(sugarG || 0),
-      proteinG: Number(proteinG || 0),
+      pointsPerServing: Number(pointsPerServing),
       servingSize: Number(servingSize),
       servingUnit: servingUnit.trim(),
       isZeroPoint: zeroPointDisabled ? false : isZeroPoint,
@@ -47,10 +41,7 @@ export function AddFoodForm({ onSubmit, isSubmitting }: { onSubmit: (input: NewF
       isFlavorBooster,
     })
     setName('')
-    setCalories('')
-    setSatFatG('')
-    setSugarG('')
-    setProteinG('')
+    setPointsPerServing('')
     setIsZeroPoint(false)
     setIsMixer(false)
     setIsFlavorBooster(false)
@@ -87,52 +78,6 @@ export function AddFoodForm({ onSubmit, isSubmitting }: { onSubmit: (input: NewF
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">Calories</label>
-          <input
-            name="calories"
-            type="number"
-            value={calories}
-            onChange={(e) => setCalories(e.target.value)}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">Protein (g)</label>
-          <input
-            name="proteinG"
-            type="number"
-            value={proteinG}
-            onChange={(e) => setProteinG(e.target.value)}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">Sat fat (g)</label>
-          <input
-            name="satFatG"
-            type="number"
-            value={satFatG}
-            onChange={(e) => setSatFatG(e.target.value)}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">Sugar (g)</label>
-          <input
-            name="sugarG"
-            type="number"
-            value={sugarG}
-            onChange={(e) => setSugarG(e.target.value)}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <div>
           <label className="mb-1 block text-sm font-medium text-slate-700">Serving size</label>
           <input
             name="servingSize"
@@ -152,6 +97,17 @@ export function AddFoodForm({ onSubmit, isSubmitting }: { onSubmit: (input: NewF
             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
           />
         </div>
+      </div>
+
+      <div>
+        <label className="mb-1 block text-sm font-medium text-slate-700">Points per serving</label>
+        <input
+          name="pointsPerServing"
+          type="number"
+          value={pointsPerServing}
+          onChange={(e) => setPointsPerServing(e.target.value)}
+          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+        />
       </div>
 
       <div className="flex flex-wrap gap-4 text-sm text-slate-700">

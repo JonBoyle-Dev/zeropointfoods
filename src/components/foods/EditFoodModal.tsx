@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Modal } from '../common/Modal'
 import { useUpdateFood } from '../../hooks/useFoods'
-import { calculateFoodPoints } from '../../lib/points'
 import type { Food, FoodCategory } from '../../types/database'
 
 const CATEGORIES: { value: FoodCategory; label: string }[] = [
@@ -18,10 +17,6 @@ const CATEGORIES: { value: FoodCategory; label: string }[] = [
 export function EditFoodModal({ food, onClose }: { food: Food; onClose: () => void }) {
   const [name, setName] = useState(food.name)
   const [category, setCategory] = useState<FoodCategory>(food.category)
-  const [calories, setCalories] = useState(String(food.calories))
-  const [satFatG, setSatFatG] = useState(String(food.sat_fat_g))
-  const [sugarG, setSugarG] = useState(String(food.sugar_g))
-  const [proteinG, setProteinG] = useState(String(food.protein_g))
   const [servingSize, setServingSize] = useState(String(food.serving_size))
   const [servingUnit, setServingUnit] = useState(food.serving_unit)
   const [isZeroPoint, setIsZeroPoint] = useState(food.is_zero_point)
@@ -32,16 +27,7 @@ export function EditFoodModal({ food, onClose }: { food: Food; onClose: () => vo
   const updateFood = useUpdateFood()
   const zeroPointDisabled = category === 'alcohol'
 
-  const calculatedPoints = calculateFoodPoints({
-    calories: Number(calories || 0),
-    satFatG: Number(satFatG || 0),
-    sugarG: Number(sugarG || 0),
-    proteinG: Number(proteinG || 0),
-    isZeroPoint: zeroPointDisabled ? false : isZeroPoint,
-    category,
-  })
-
-  const isValid = name.trim() && calories && servingSize && servingUnit.trim() && pointsPerServing !== ''
+  const isValid = name.trim() && servingSize && servingUnit.trim() && pointsPerServing !== ''
 
   function handleSubmit() {
     if (!isValid) return
@@ -50,10 +36,6 @@ export function EditFoodModal({ food, onClose }: { food: Food; onClose: () => vo
         foodId: food.id,
         name: name.trim(),
         category,
-        calories: Number(calories),
-        satFatG: Number(satFatG || 0),
-        sugarG: Number(sugarG || 0),
-        proteinG: Number(proteinG || 0),
         servingSize: Number(servingSize),
         servingUnit: servingUnit.trim(),
         pointsPerServing: Number(pointsPerServing),
@@ -94,48 +76,6 @@ export function EditFoodModal({ food, onClose }: { food: Food; onClose: () => vo
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Calories</label>
-            <input
-              type="number"
-              value={calories}
-              onChange={(e) => setCalories(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Protein (g)</label>
-            <input
-              type="number"
-              value={proteinG}
-              onChange={(e) => setProteinG(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Sat fat (g)</label>
-            <input
-              type="number"
-              value={satFatG}
-              onChange={(e) => setSatFatG(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Sugar (g)</label>
-            <input
-              type="number"
-              value={sugarG}
-              onChange={(e) => setSugarG(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
             <label className="mb-1 block text-sm font-medium text-slate-700">Serving size</label>
             <input
               type="number"
@@ -152,6 +92,16 @@ export function EditFoodModal({ food, onClose }: { food: Food; onClose: () => vo
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
             />
           </div>
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium text-slate-700">Points per serving</label>
+          <input
+            type="number"
+            value={pointsPerServing}
+            onChange={(e) => setPointsPerServing(e.target.value)}
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+          />
         </div>
 
         <div className="flex flex-wrap gap-4 text-sm text-slate-700">
@@ -172,33 +122,6 @@ export function EditFoodModal({ food, onClose }: { food: Food; onClose: () => vo
             <input type="checkbox" checked={isFlavorBooster} onChange={(e) => setIsFlavorBooster(e.target.checked)} />
             Flavor booster
           </label>
-        </div>
-
-        <div className="rounded-lg border border-slate-200 p-3">
-          <label className="mb-1 block text-sm font-medium text-slate-700">Points per serving</label>
-          <div className="flex items-center gap-2">
-            <input
-              type="number"
-              value={pointsPerServing}
-              onChange={(e) => setPointsPerServing(e.target.value)}
-              className="w-24 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-            />
-            <span className="text-xs text-slate-500">
-              Calculated from the values above: <b className="font-mono">{calculatedPoints}</b>
-            </span>
-            {Number(pointsPerServing) !== calculatedPoints && (
-              <button
-                type="button"
-                onClick={() => setPointsPerServing(String(calculatedPoints))}
-                className="ml-auto text-xs font-medium text-teal-700 underline"
-              >
-                Use calculated
-              </button>
-            )}
-          </div>
-          <p className="mt-1.5 text-xs text-slate-500">
-            Type your own value here to override the calculated points for this food.
-          </p>
         </div>
 
         {updateFood.isError && <p className="text-sm text-red-600">{(updateFood.error as Error).message}</p>}

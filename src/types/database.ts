@@ -38,10 +38,6 @@ export interface Food {
   id: string
   name: string
   category: FoodCategory
-  calories: number
-  sat_fat_g: number
-  sugar_g: number
-  protein_g: number
   serving_size: number
   serving_unit: string
   points_per_serving: number
