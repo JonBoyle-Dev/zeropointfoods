@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Modal } from '../common/Modal'
 import { useActivities, useLogActivityEntry } from '../../hooks/useActivities'
-import { calculateActivityPoints } from '../../lib/points'
 import type { User } from '../../types/database'
 
 export function LogActivityModal({ user, loggedDate, onClose }: { user: User; loggedDate: string; onClose: () => void }) {
@@ -12,7 +11,7 @@ export function LogActivityModal({ user, loggedDate, onClose }: { user: User; lo
 
   const activity = activities?.find((a) => a.id === activityId)
   const previewPoints = activity
-    ? Math.round(calculateActivityPoints({ durationMinutes: Number(durationMinutes || 0), metValue: activity.met_value, weightKg: user.current_weight_kg }))
+    ? Math.round((activity.points_per_session * Number(durationMinutes || 0)) / activity.session_minutes)
     : 0
 
   function handleSubmit() {
@@ -23,8 +22,8 @@ export function LogActivityModal({ user, loggedDate, onClose }: { user: User; lo
         activityId: activity.id,
         loggedDate,
         durationMinutes: Number(durationMinutes),
-        metValue: activity.met_value,
-        weightKg: user.current_weight_kg,
+        pointsPerSession: activity.points_per_session,
+        sessionMinutes: activity.session_minutes,
         dailyPointsAllowance: user.daily_points_allowance,
         weeklyResetDay: user.weekly_reset_day,
       },
@@ -60,9 +59,14 @@ export function LogActivityModal({ user, loggedDate, onClose }: { user: User; lo
             onChange={(e) => setDurationMinutes(e.target.value)}
             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
           />
+          {activity && (
+            <p className="mt-1 text-xs text-slate-500">
+              {activity.name} is {activity.points_per_session} pts per {activity.session_minutes} min
+            </p>
+          )}
         </div>
 
-        <p className="text-sm text-slate-500">+{previewPoints} FitPoints for this session</p>
+        <p className="text-sm text-slate-500">+{previewPoints} points for this session</p>
 
         <div className="flex justify-end">
           <button

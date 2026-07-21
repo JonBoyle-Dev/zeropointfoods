@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
-import { calculateActivityPoints } from '../lib/points'
 import { recalculateDailySummary } from './useDailySummary'
 import { recalculateWeeklyCycle } from './useWeeklyCycle'
 import { getWeekStartDate } from '../lib/dates'
@@ -41,8 +40,8 @@ export interface LogActivityEntryInput {
   activityId: string
   loggedDate: string
   durationMinutes: number
-  metValue: number
-  weightKg: number
+  pointsPerSession: number
+  sessionMinutes: number
   dailyPointsAllowance: number
   weeklyResetDay: Weekday
 }
@@ -79,12 +78,10 @@ export function useLogActivityEntry() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (input: LogActivityEntryInput) => {
-      // Calculated + snapshotted at log time, same rationale as food_entries.points_used (spec §4).
-      const pointsEarned = calculateActivityPoints({
-        durationMinutes: input.durationMinutes,
-        metValue: input.metValue,
-        weightKg: input.weightKg,
-      })
+      // Points are assigned directly per session length, not calculated from MET/weight
+      // (removed per explicit user request) — scale proportionally to the actual duration logged.
+      // Snapshotted at log time, same rationale as food_entries.points_used (spec §4).
+      const pointsEarned = Math.round((input.pointsPerSession * input.durationMinutes) / input.sessionMinutes)
 
       const { data, error } = await supabase
         .from('activity_entries')

@@ -23,7 +23,8 @@ zeropointfoods/
 │       ├── 0003_seed_content.sql              # superseded — foods/meals from this migration deleted by 0004
 │       ├── 0004_replace_food_database.sql     # ~250 curated foods, real WW-style points table (see below)
 │       ├── 0005_rebuild_zero_point_meals.sql  # 16 Zero-Point Meals rebuilt against the 0004 food names
-│       └── 0006_remove_macro_columns.sql      # drops calories/sat_fat_g/sugar_g/protein_g — points are always direct now
+│       ├── 0006_remove_macro_columns.sql      # drops calories/sat_fat_g/sugar_g/protein_g — points are always direct now
+│       └── 0007_replace_activities.sql        # drops met_value, adds points_per_session/session_minutes, replaces the curated activity list
 └── src/
     ├── lib/
     │   ├── supabase.ts   # client singleton, no generic Database type (hand-typed per hook instead)
@@ -40,10 +41,9 @@ Note on schema drift: `schema.sql` reflects the original 12-table baseline; the 
 
 ## Formula reference
 
-`src/lib/points.ts` implements the remaining 3 formulas from spec §2 (food points are no longer calculated — see below):
+`src/lib/points.ts` implements the remaining 2 formulas from spec §2 (food and activity points are no longer calculated — see below):
 - `calculateAllowance` — daily personal points allowance (§2.1), floors at 20/day
-- `calculateActivityPoints` — MET-based FitPoints (§2.3)
-- `calculateDailyRollover` — weekly bank rollover/dip (§2.4), floors at 0, capped at 4pts/day rollover
+- `calculateDailyRollover` — weekly bank rollover/dip (§2.4), floors at 0. The spec's original 4pt/day rollover cap ("to prevent hoarding") was removed per explicit user request — unused points now carry over in full, uncapped.
 
 If the spec's formulas change, update `points.ts` and nowhere else.
 
@@ -71,6 +71,7 @@ If the spec's formulas change, update `points.ts` and nowhere else.
 - **The bank has to actually feed into "points left," not just sit in a side strip.** This was a real bug through Phase 3/4: `pointsLeft` only ever computed `allowance + activity − used` for the single day being viewed, so a banked cushion from yesterday was never spendable today, and today's overspend never reduced what tomorrow had available — the weekly bank was purely decorative. Fixed via `useBankCarriedIntoDay` in `src/hooks/useWeeklyCycle.ts`: `pointsLeft = allowance + activity + bankCarriedIn − used`, where `bankCarriedIn` is the sum of `rollover_to_weekly` for days strictly *before* the viewed date in the current week. That sum is safe as a plain SQL sum (not a re-derivation) — each stored `rollover_to_weekly` is already `bank_after_day − bank_before_day` from the correct sequential fold, so summing consecutive deltas telescopes exactly to the running bank, no reordering/floor ambiguity. Verified end-to-end: under-spending a day raises next-day `pointsLeft` by the capped rollover; flipping that day to over-budget immediately drops it back to 0.
 - **TodayPage takes a `selectedDate`, not just "today."** A day-chip strip (`DayNav`) shows the current reset-day week (e.g. Fri–Thu) with prev/next-week arrows; every hook on the page (summary, entries, bank) is generalized to the selected date instead of hardcoded `today`. Historical days show their own snapshotted `daily_summary.points_allowance` (not the user's *current* allowance, which may have since changed via a weigh-in). Weigh-ins stay today-only (there's no "backdate my weight" concept); food logging can backfill any day — `/log` reads `?date=` from the URL, which `TodayPage`'s "Log food" link sets to the selected date.
 - **`weekly_reset_day` is changeable after onboarding**, not just set-once — `SettingsModal` (reachable via the ⚙ next to the profile switcher) calls `useUpdateWeeklyResetDay`, which immediately re-runs `recalculateWeeklyCycle` under the new boundary rather than waiting for the next log action.
+- **Activity points are a direct points-per-session value, not MET-based anymore.** `calculateActivityPoints` and `activities.met_value` were removed per explicit user request (`supabase/migrations/0007_replace_activities.sql`) — each activity carries `points_per_session` + `session_minutes` (e.g. "Walking = 2 pts / 30 min"), and logging scales proportionally to the actual duration: `round(points_per_session * duration_minutes / session_minutes)`. No more weight dependency for activity points. `0007` also replaced the whole curated activity list and, since `activity_entries.activity_id` cascades from `activities`, removed any entries logged against the old (non-`is_user_created`) activities — same tradeoff as the `0004` food database replacement, with the same `daily_summary` reconciliation step at the end.
 
 ## Local dev
 

@@ -13,7 +13,6 @@ const ACTIVITY_BONUS: Record<ActivityLevel, number> = {
 }
 
 const MIN_DAILY_ALLOWANCE = 20
-export const MAX_DAILY_ROLLOVER = 4
 export const DAYS_PER_WEEK = 7
 
 export interface AllowanceInput {
@@ -38,17 +37,6 @@ export function calculateAllowance(input: AllowanceInput): number {
   return Math.max(allowance, MIN_DAILY_ALLOWANCE)
 }
 
-export interface ActivityPointsInput {
-  durationMinutes: number
-  metValue: number
-  weightKg: number
-}
-
-/** Activity (FitPoints) — spec §2.3, standard MET-based formula. */
-export function calculateActivityPoints(input: ActivityPointsInput): number {
-  return (input.durationMinutes * input.metValue * input.weightKg * 0.0175) / 10
-}
-
 export interface DailyRolloverInput {
   dailyAllowance: number
   dailyPointsUsed: number
@@ -60,12 +48,17 @@ export interface DailyRolloverResult {
   isOverBudget: boolean
 }
 
-/** Weekly bank rollover/dip — spec §2.4. Bank floors at 0 and never goes negative. */
+/**
+ * Weekly bank rollover/dip — spec §2.4. Bank floors at 0 and never goes negative.
+ * No cap on daily rollover — the spec's original 4pt/day cap ("to prevent
+ * hoarding") was removed per explicit user request; unused points now carry
+ * over in full.
+ */
 export function calculateDailyRollover(input: DailyRolloverInput): DailyRolloverResult {
   const { dailyAllowance, dailyPointsUsed, currentWeeklyBank } = input
 
   if (dailyPointsUsed <= dailyAllowance) {
-    const rollover = Math.min(MAX_DAILY_ROLLOVER, dailyAllowance - dailyPointsUsed)
+    const rollover = dailyAllowance - dailyPointsUsed
     return { weeklyBank: currentWeeklyBank + rollover, isOverBudget: false }
   }
 

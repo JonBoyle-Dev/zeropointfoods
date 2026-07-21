@@ -91,7 +91,8 @@ export interface ZeroPointMealIngredient {
 export interface Activity {
   id: string
   name: string
-  met_value: number
+  points_per_session: number
+  session_minutes: number
   is_user_created: boolean
 }
 
