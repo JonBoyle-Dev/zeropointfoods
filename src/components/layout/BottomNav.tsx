@@ -5,6 +5,7 @@ const TABS = [
   { to: '/log', label: 'Log', icon: '＋' },
   { to: '/library', label: 'Library', icon: '⬚' },
   { to: '/recipes', label: 'Recipes', icon: '☰' },
+  { to: '/reports', label: 'Reports', icon: '▤' },
 ]
 
 export function BottomNav() {

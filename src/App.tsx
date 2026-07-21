@@ -6,6 +6,7 @@ import { FoodsPage } from './pages/FoodsPage'
 import { LogPage } from './pages/LogPage'
 import { RecipesPage } from './pages/RecipesPage'
 import { LibraryPage } from './pages/LibraryPage'
+import { ReportsPage } from './pages/ReportsPage'
 import { BottomNav } from './components/layout/BottomNav'
 import { ProfileBadge } from './components/layout/ProfileBadge'
 import { useProfileContext } from './context/ProfileContext'
@@ -81,6 +82,14 @@ function App() {
           element={
             <RequireProfile>
               <LibraryPage />
+            </RequireProfile>
+          }
+        />
+        <Route
+          path="/reports"
+          element={
+            <RequireProfile>
+              <ReportsPage />
             </RequireProfile>
           }
         />
