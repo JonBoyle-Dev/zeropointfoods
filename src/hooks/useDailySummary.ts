@@ -19,6 +19,26 @@ export function useDailySummary(userId: string | undefined, date: string) {
   })
 }
 
+/** is_over_budget per day for the week strip's green/red chips — a day with no row yet (nothing logged) has no verdict, so it's left out rather than assumed green. */
+export function useWeekOverBudgetStatus(userId: string | undefined, weekStartDate: string, weekEndDate: string) {
+  return useQuery({
+    queryKey: ['weekOverBudget', userId, weekStartDate],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('daily_summary')
+        .select('date, is_over_budget')
+        .eq('user_id', userId!)
+        .gte('date', weekStartDate)
+        .lte('date', weekEndDate)
+      if (error) throw error
+      const statusByDate: Record<string, boolean> = {}
+      for (const row of data ?? []) statusByDate[row.date] = row.is_over_budget
+      return statusByDate
+    },
+    enabled: !!userId,
+  })
+}
+
 /**
  * Recomputes and upserts the materialized daily_summary row from raw entries.
  * Called after any food/activity log action so `daily_summary` stays a cheap

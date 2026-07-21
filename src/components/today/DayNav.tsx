@@ -3,12 +3,15 @@ import { addDays, todayDateInputValue, toDateInputValue } from '../../lib/dates'
 export function DayNav({
   weekStartDate,
   selectedDate,
+  dayStatuses,
   onSelect,
   onPrevWeek,
   onNextWeek,
 }: {
   weekStartDate: string
   selectedDate: string
+  /** date -> is_over_budget. A day with no entry (nothing logged yet) is left out — no verdict without data. */
+  dayStatuses: Record<string, boolean>
   onSelect: (date: string) => void
   onPrevWeek: () => void
   onNextWeek: () => void
@@ -27,13 +30,24 @@ export function DayNav({
           const d = new Date(date + 'T00:00:00')
           const isSelected = date === selectedDate
           const isToday = date === today
+          const overBudget = dayStatuses[date]
+
+          const fill =
+            overBudget === true
+              ? 'bg-[#F7D9D9] text-[#8B2E2E]'
+              : overBudget === false
+                ? 'bg-[#DCEAE6] text-[#1C2620]'
+                : 'text-[#5B665D]'
+
           return (
             <button
               key={date}
               onClick={() => onSelect(date)}
               className={
                 'flex flex-1 flex-col items-center rounded-lg py-1.5 text-[11px] font-medium ' +
-                (isSelected ? 'bg-[#2B6E63] text-white' : isToday ? 'bg-[#DCEAE6] text-[#1C2620]' : 'text-[#5B665D]')
+                fill +
+                (isSelected ? ' ring-2 ring-inset ring-[#1C2620]' : '') +
+                (isToday && !isSelected ? ' border-b-2 border-[#1C2620]' : '')
               }
             >
               <span>{d.toLocaleDateString(undefined, { weekday: 'short' }).slice(0, 2)}</span>

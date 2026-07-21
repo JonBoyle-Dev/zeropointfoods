@@ -5,7 +5,7 @@ import { WeeklyBankStrip } from '../components/today/WeeklyBankStrip'
 import { DayNav } from '../components/today/DayNav'
 import { LogActivityModal } from '../components/today/LogActivityModal'
 import { WeighInModal } from '../components/today/WeighInModal'
-import { useDailySummary } from '../hooks/useDailySummary'
+import { useDailySummary, useWeekOverBudgetStatus } from '../hooks/useDailySummary'
 import { useTodayEntries, useDeleteFoodEntry } from '../hooks/useFoodEntries'
 import { useTodayActivityEntries, useDeleteActivityEntry } from '../hooks/useActivities'
 import { useWeeklyCycle, useBankCarriedIntoDay } from '../hooks/useWeeklyCycle'
@@ -24,8 +24,10 @@ export function TodayPage() {
   const { data: foodEntries } = useTodayEntries(user?.id, selectedDate)
   const { data: activityEntries } = useTodayActivityEntries(user?.id, selectedDate)
   const weekStartDate = user ? getWeekStartDate(selectedDate, user.weekly_reset_day) : ''
+  const weekEndDate = weekStartDate ? toDateInputValue(addDays(new Date(weekStartDate + 'T00:00:00'), 6)) : ''
   const { data: weeklyCycle } = useWeeklyCycle(user?.id, weekStartDate)
   const { data: bankCarriedIn } = useBankCarriedIntoDay(user?.id, user?.weekly_reset_day ?? 'monday', selectedDate)
+  const { data: dayStatuses } = useWeekOverBudgetStatus(user?.id, weekStartDate, weekEndDate)
   const [loggingActivity, setLoggingActivity] = useState(false)
   const [loggingWeighIn, setLoggingWeighIn] = useState(false)
   const deleteFoodEntry = useDeleteFoodEntry()
@@ -102,6 +104,7 @@ export function TodayPage() {
             <DayNav
               weekStartDate={weekStartDate}
               selectedDate={selectedDate}
+              dayStatuses={dayStatuses ?? {}}
               onSelect={setSelectedDate}
               onPrevWeek={() => setSelectedDate((d) => toDateInputValue(addDays(new Date(d + 'T00:00:00'), -7)))}
               onNextWeek={() => setSelectedDate((d) => toDateInputValue(addDays(new Date(d + 'T00:00:00'), 7)))}

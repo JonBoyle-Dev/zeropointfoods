@@ -13,7 +13,6 @@ const ACTIVITY_BONUS: Record<ActivityLevel, number> = {
 }
 
 const MIN_DAILY_ALLOWANCE = 20
-export const DAYS_PER_WEEK = 7
 
 export interface AllowanceInput {
   weightKg: number

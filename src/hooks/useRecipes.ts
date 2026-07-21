@@ -118,6 +118,7 @@ export function useLogRecipe() {
       const weekStartDate = getWeekStartDate(variables.loggedDate, variables.weeklyResetDay)
       queryClient.invalidateQueries({ queryKey: ['weeklyCycle', variables.userId, weekStartDate] })
       queryClient.invalidateQueries({ queryKey: ['bankCarriedIn', variables.userId] })
+      queryClient.invalidateQueries({ queryKey: ['weekOverBudget', variables.userId] })
     },
   })
 }

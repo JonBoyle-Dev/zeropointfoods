@@ -91,6 +91,7 @@ export function useUpdateWeeklyResetDay() {
       queryClient.invalidateQueries({ queryKey: ['users'] })
       queryClient.invalidateQueries({ queryKey: ['weeklyCycle', variables.userId] })
       queryClient.invalidateQueries({ queryKey: ['bankCarriedIn', variables.userId] })
+      queryClient.invalidateQueries({ queryKey: ['weekOverBudget', variables.userId] })
     },
   })
 }
