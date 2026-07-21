@@ -22,6 +22,37 @@ export function useWeeklyCycle(userId: string | undefined, weekStartDate: string
 }
 
 /**
+ * Bank available to spend on `date`, carried in from earlier days in the same
+ * week — this is what TodayPage's "points left" was missing (it only ever
+ * showed allowance+activity-used for the single day, so unused points never
+ * actually became spendable later, and overspending never reduced later days).
+ *
+ * Safe to compute as a plain sum of `rollover_to_weekly` for days strictly
+ * before `date`: each stored value is already `bank_after_day - bank_before_day`
+ * from the correct sequential fold (recalculateWeeklyCycle), so summing them
+ * telescopes to exactly `bank_after_last_day` — no re-deriving or reordering,
+ * so the floor-at-zero non-linearity that makes a *raw* stateless recompute
+ * unsafe doesn't apply here.
+ */
+export function useBankCarriedIntoDay(userId: string | undefined, weeklyResetDay: Weekday, date: string) {
+  const weekStartDate = getWeekStartDate(date, weeklyResetDay)
+  return useQuery({
+    queryKey: ['bankCarriedIn', userId, date],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('daily_summary')
+        .select('rollover_to_weekly')
+        .eq('user_id', userId!)
+        .gte('date', weekStartDate)
+        .lt('date', date)
+      if (error) throw error
+      return (data ?? []).reduce((sum, day) => sum + Number(day.rollover_to_weekly), 0)
+    },
+    enabled: !!userId,
+  })
+}
+
+/**
  * Recomputes the current week's bank by sequentially folding calculateDailyRollover
  * over each day's daily_summary from the week's start through today, then writes
  * the result back — both per-day (rollover_to_weekly, is_over_budget) and the

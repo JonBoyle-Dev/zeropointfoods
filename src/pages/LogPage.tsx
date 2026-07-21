@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { CategoryChips } from '../components/log/CategoryChips'
 import { FoodRow } from '../components/log/FoodRow'
 import { LogFoodModal } from '../components/log/LogFoodModal'
@@ -13,6 +13,9 @@ import type { Food, FoodCategory } from '../types/database'
 export function LogPage() {
   const { currentProfileId } = useProfileContext()
   const { data: user } = useUser(currentProfileId)
+  const [searchParams] = useSearchParams()
+  // Lets the Today page's day navigator deep-link here to backfill a past day instead of always logging to today.
+  const loggedDate = searchParams.get('date') || todayDateInputValue()
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState<FoodCategory | 'all'>('all')
   const [loggingFood, setLoggingFood] = useState<Food | null>(null)
@@ -31,7 +34,14 @@ export function LogPage() {
 
   return (
     <div className="min-h-screen bg-[#EFF2ED] px-5 py-6 pb-24">
-      <h1 className="mb-4 font-['Space_Grotesk',sans-serif] text-[15px] font-semibold text-[#1C2620]">Log food or drink</h1>
+      <div className="mb-4">
+        <h1 className="font-['Space_Grotesk',sans-serif] text-[15px] font-semibold text-[#1C2620]">Log food or drink</h1>
+        {loggedDate !== todayDateInputValue() && (
+          <p className="text-[12px] text-[#5B665D]">
+            Logging for {new Date(loggedDate + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}
+          </p>
+        )}
+      </div>
 
       <div className="mb-3.5 flex items-center gap-2 rounded-xl border border-[#DADFD7] bg-white px-3.5 py-3 text-[13.5px] text-[#5B665D]">
         <span>🔍</span>
@@ -78,7 +88,7 @@ export function LogPage() {
       </Link>
 
       {loggingFood && user && (
-        <LogFoodModal food={loggingFood} user={user} loggedDate={todayDateInputValue()} onClose={() => setLoggingFood(null)} />
+        <LogFoodModal food={loggingFood} user={user} loggedDate={loggedDate} onClose={() => setLoggingFood(null)} />
       )}
     </div>
   )

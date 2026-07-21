@@ -117,6 +117,7 @@ export function useLogRecipe() {
       queryClient.invalidateQueries({ queryKey: ['dailySummary', variables.userId, variables.loggedDate] })
       const weekStartDate = getWeekStartDate(variables.loggedDate, variables.weeklyResetDay)
       queryClient.invalidateQueries({ queryKey: ['weeklyCycle', variables.userId, weekStartDate] })
+      queryClient.invalidateQueries({ queryKey: ['bankCarriedIn', variables.userId] })
     },
   })
 }

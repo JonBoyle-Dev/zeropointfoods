@@ -88,6 +88,7 @@ export function useDeleteFoodEntry() {
       queryClient.invalidateQueries({ queryKey: ['dailySummary', variables.userId, variables.loggedDate] })
       const weekStartDate = getWeekStartDate(variables.loggedDate, variables.weeklyResetDay)
       queryClient.invalidateQueries({ queryKey: ['weeklyCycle', variables.userId, weekStartDate] })
+      queryClient.invalidateQueries({ queryKey: ['bankCarriedIn', variables.userId] })
     },
   })
 }
@@ -123,6 +124,7 @@ export function useLogFoodEntry() {
       queryClient.invalidateQueries({ queryKey: ['dailySummary', variables.userId, variables.loggedDate] })
       const weekStartDate = getWeekStartDate(variables.loggedDate, variables.weeklyResetDay)
       queryClient.invalidateQueries({ queryKey: ['weeklyCycle', variables.userId, weekStartDate] })
+      queryClient.invalidateQueries({ queryKey: ['bankCarriedIn', variables.userId] })
     },
   })
 }

@@ -68,6 +68,7 @@ export function useLogWeighIn() {
       queryClient.invalidateQueries({ queryKey: ['dailySummary', variables.user.id, variables.today] })
       const weekStartDate = getWeekStartDate(variables.today, variables.user.weekly_reset_day)
       queryClient.invalidateQueries({ queryKey: ['weeklyCycle', variables.user.id, weekStartDate] })
+      queryClient.invalidateQueries({ queryKey: ['bankCarriedIn', variables.user.id] })
     },
   })
 }

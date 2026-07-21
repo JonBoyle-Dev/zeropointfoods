@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { calculateAllowance } from '../lib/points'
-import { toDateInputValue } from '../lib/dates'
+import { toDateInputValue, todayDateInputValue } from '../lib/dates'
+import { recalculateWeeklyCycle } from './useWeeklyCycle'
 import type { ActivityLevel, Sex, UnitsPreference, User, Weekday } from '../types/database'
 
 /** All profiles, for the profile picker (spec update: household app, not single-user). */
@@ -73,5 +74,23 @@ export function useCreateUser() {
       return data as User
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] }),
+  })
+}
+
+/** Changing the reset day shifts the whole week's boundary, so the current week's bank/rollover is recalculated under it immediately rather than waiting for the next log action. */
+export function useUpdateWeeklyResetDay() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ userId, weeklyResetDay }: { userId: string; weeklyResetDay: Weekday }) => {
+      const { error } = await supabase.from('users').update({ weekly_reset_day: weeklyResetDay }).eq('id', userId)
+      if (error) throw error
+      await recalculateWeeklyCycle(userId, weeklyResetDay, todayDateInputValue())
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['user'] })
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+      queryClient.invalidateQueries({ queryKey: ['weeklyCycle', variables.userId] })
+      queryClient.invalidateQueries({ queryKey: ['bankCarriedIn', variables.userId] })
+    },
   })
 }

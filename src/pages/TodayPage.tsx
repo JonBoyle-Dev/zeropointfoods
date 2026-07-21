@@ -2,25 +2,30 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PointsDial } from '../components/today/PointsDial'
 import { WeeklyBankStrip } from '../components/today/WeeklyBankStrip'
+import { DayNav } from '../components/today/DayNav'
 import { LogActivityModal } from '../components/today/LogActivityModal'
 import { WeighInModal } from '../components/today/WeighInModal'
 import { useDailySummary } from '../hooks/useDailySummary'
 import { useTodayEntries, useDeleteFoodEntry } from '../hooks/useFoodEntries'
 import { useTodayActivityEntries, useDeleteActivityEntry } from '../hooks/useActivities'
-import { useWeeklyCycle } from '../hooks/useWeeklyCycle'
+import { useWeeklyCycle, useBankCarriedIntoDay } from '../hooks/useWeeklyCycle'
 import { useUser } from '../hooks/useUser'
 import { useProfileContext } from '../context/ProfileContext'
-import { getWeekStartDate, todayDateInputValue } from '../lib/dates'
+import { addDays, getWeekStartDate, toDateInputValue, todayDateInputValue } from '../lib/dates'
 
 export function TodayPage() {
   const { currentProfileId } = useProfileContext()
   const { data: user } = useUser(currentProfileId)
   const today = todayDateInputValue()
-  const { data: summary } = useDailySummary(user?.id, today)
-  const { data: foodEntries } = useTodayEntries(user?.id, today)
-  const { data: activityEntries } = useTodayActivityEntries(user?.id, today)
-  const weekStartDate = user ? getWeekStartDate(today, user.weekly_reset_day) : ''
+  const [selectedDate, setSelectedDate] = useState(today)
+  const isToday = selectedDate === today
+
+  const { data: summary } = useDailySummary(user?.id, selectedDate)
+  const { data: foodEntries } = useTodayEntries(user?.id, selectedDate)
+  const { data: activityEntries } = useTodayActivityEntries(user?.id, selectedDate)
+  const weekStartDate = user ? getWeekStartDate(selectedDate, user.weekly_reset_day) : ''
   const { data: weeklyCycle } = useWeeklyCycle(user?.id, weekStartDate)
+  const { data: bankCarriedIn } = useBankCarriedIntoDay(user?.id, user?.weekly_reset_day ?? 'monday', selectedDate)
   const [loggingActivity, setLoggingActivity] = useState(false)
   const [loggingWeighIn, setLoggingWeighIn] = useState(false)
   const deleteFoodEntry = useDeleteFoodEntry()
@@ -31,7 +36,7 @@ export function TodayPage() {
     deleteFoodEntry.mutate({
       entryId,
       userId: user.id,
-      loggedDate: today,
+      loggedDate: selectedDate,
       dailyPointsAllowance: user.daily_points_allowance,
       weeklyResetDay: user.weekly_reset_day,
     })
@@ -42,16 +47,18 @@ export function TodayPage() {
     deleteActivityEntry.mutate({
       entryId,
       userId: user.id,
-      loggedDate: today,
+      loggedDate: selectedDate,
       dailyPointsAllowance: user.daily_points_allowance,
       weeklyResetDay: user.weekly_reset_day,
     })
   }
 
-  const allowance = user?.daily_points_allowance ?? 0
+  // Historical days keep their own snapshotted allowance; a day with nothing logged yet (including today) falls back to the current allowance.
+  const allowance = summary ? summary.points_allowance : (user?.daily_points_allowance ?? 0)
   const used = summary?.points_used ?? 0
   const activityEarned = summary?.activity_points_earned ?? 0
-  const pointsLeft = allowance + activityEarned - used
+  // Unused points from earlier this week increase what's left to spend; overspending earlier reduces it (bankCarriedIn is signed).
+  const pointsLeft = allowance + activityEarned + (bankCarriedIn ?? 0) - used
   const weeklyBank = weeklyCycle?.weekly_bank_current ?? 0
 
   const hasEntries = (foodEntries?.length ?? 0) > 0 || (activityEntries?.length ?? 0) > 0
@@ -66,7 +73,9 @@ export function TodayPage() {
 
       <div className="px-5">
         <div className="rounded-2xl bg-white p-5 shadow-[0_1px_0_#DADFD7]">
-          <div className="font-mono text-[11px] uppercase tracking-wider text-[#5B665D]">Today</div>
+          <div className="font-mono text-[11px] uppercase tracking-wider text-[#5B665D]">
+            {isToday ? 'Today' : new Date(selectedDate + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}
+          </div>
           <div className="mt-2.5 flex items-center gap-4">
             <PointsDial pointsLeft={pointsLeft} allowance={allowance} />
             <div className="flex flex-1 flex-col gap-2.5">
@@ -75,15 +84,29 @@ export function TodayPage() {
                 <b className="font-mono font-semibold text-[#1C2620]">{Math.round(allowance)}</b>
               </div>
               <div className="flex justify-between text-[13px] text-[#5B665D]">
-                <span>Logged today</span>
+                <span>Logged</span>
                 <b className="font-mono font-semibold text-[#1C2620]">{Math.round(used)}</b>
               </div>
               <div className="flex justify-between text-[13px] text-[#5B665D]">
                 <span>Activity earned</span>
                 <b className="font-mono font-semibold text-[#1C2620]">+{Math.round(activityEarned)}</b>
               </div>
+              <div className="flex justify-between text-[13px] text-[#5B665D]">
+                <span>Carried in</span>
+                <b className="font-mono font-semibold text-[#1C2620]">{Math.round(bankCarriedIn ?? 0)}</b>
+              </div>
             </div>
           </div>
+
+          {user && (
+            <DayNav
+              weekStartDate={weekStartDate}
+              selectedDate={selectedDate}
+              onSelect={setSelectedDate}
+              onPrevWeek={() => setSelectedDate((d) => toDateInputValue(addDays(new Date(d + 'T00:00:00'), -7)))}
+              onNextWeek={() => setSelectedDate((d) => toDateInputValue(addDays(new Date(d + 'T00:00:00'), 7)))}
+            />
+          )}
 
           <WeeklyBankStrip bank={weeklyBank} />
         </div>
@@ -95,17 +118,19 @@ export function TodayPage() {
           >
             + Log activity
           </button>
-          <button
-            onClick={() => setLoggingWeighIn(true)}
-            className="flex-1 rounded-xl border border-[#DADFD7] bg-white py-2.5 text-[12.5px] font-medium text-[#1C2620]"
-          >
-            + Log weigh-in
-          </button>
+          {isToday && (
+            <button
+              onClick={() => setLoggingWeighIn(true)}
+              className="flex-1 rounded-xl border border-[#DADFD7] bg-white py-2.5 text-[12.5px] font-medium text-[#1C2620]"
+            >
+              + Log weigh-in
+            </button>
+          )}
         </div>
 
         <div className="mt-6 mb-2.5 flex items-center justify-between font-['Space_Grotesk',sans-serif] text-[15px] font-semibold text-[#1C2620]">
-          <span>Logged today</span>
-          <Link to="/log" className="text-[12px] font-medium text-[#2B6E63]">
+          <span>Logged {isToday ? 'today' : ''}</span>
+          <Link to={`/log?date=${selectedDate}`} className="text-[12px] font-medium text-[#2B6E63]">
             Log food
           </Link>
         </div>
@@ -146,10 +171,12 @@ export function TodayPage() {
           </div>
         ))}
 
-        {!hasEntries && <p className="text-sm text-[#5B665D]">Nothing logged yet today.</p>}
+        {!hasEntries && <p className="text-sm text-[#5B665D]">Nothing logged {isToday ? 'yet today' : 'this day'}.</p>}
       </div>
 
-      {loggingActivity && user && <LogActivityModal user={user} loggedDate={today} onClose={() => setLoggingActivity(false)} />}
+      {loggingActivity && user && (
+        <LogActivityModal user={user} loggedDate={selectedDate} onClose={() => setLoggingActivity(false)} />
+      )}
       {loggingWeighIn && user && <WeighInModal user={user} today={today} onClose={() => setLoggingWeighIn(false)} />}
     </div>
   )
